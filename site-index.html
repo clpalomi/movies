@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>My Movies — Watch Log</title>
+  <link rel="icon" href="favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Chart.js (optional analytics section) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root{
+      /* Unified palette */
+      --primary:#0d6efd;
+      --primary-600:#0b5ed7;
+      --bg:#0f1420;            /* dark default; toggle can flip */
+      --surface:#111827;
+      --muted:#a8b3c7;
+      --text:#e9eef7;
+      --border:#1f2937;
+      --shadow:0 10px 28px rgba(0,0,0,.35);
+      --radius:16px;
+      --radius-sm:12px;
+      --sidebar-w:300px;
+    }
+    @media (prefers-color-scheme: light){
+      :root{ --bg:#f4f7fb; --surface:#ffffff; --muted:#677385; --text:#141a22; --border:#e6e9ef; --shadow:0 8px 26px rgba(0,0,0,.08); }
+    }
+    html[data-theme="light"]{ --bg:#f4f7fb; --surface:#ffffff; --muted:#677385; --text:#141a22; --border:#e6e9ef; --shadow:0 8px 26px rgba(0,0,0,.08); }
+    html[data-theme="dark"]{ --bg:#0f1420; --surface:#111827; --muted:#a8b3c7; --text:#e9eef7; --border:#1f2937; --shadow:0 10px 28px rgba(0,0,0,.35); }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      background:linear-gradient(180deg, var(--bg), #0c111b 40%, var(--bg));
+      color:var(--text);
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      line-height:1.6; scroll-behavior:smooth;
+    }
+
+    /* Layout */
+    .layout{ display:block; min-height:100vh; padding-bottom:40px; }
+
+    /* Sidebar */
+    .sidebar{
+      background:
+        radial-gradient(1200px 400px at -10% -10%, rgba(13,110,253,.08), transparent 60%),
+        linear-gradient(180deg, rgba(13,110,253,.10), transparent 30%),
+        var(--surface);
+      border-right:1px solid var(--border);
+      padding:24px 20px; z-index:10;
+    }
+    @media (min-width: 992px){
+      .layout{ padding-left: var(--sidebar-w); }
+      .sidebar{ position:fixed; top:0; left:0; bottom:0; width:var(--sidebar-w); overflow:auto; }
+    }
+
+    .profile{ display:flex; flex-direction:column; align-items:center; text-align:center; gap:12px; }
+    .avatar{ width:110px; height:110px; border-radius:50%; border:3px solid rgba(13,110,253,.25); box-shadow:var(--shadow); object-fit:cover; }
+    .title{ font-weight:800; font-size:26px; letter-spacing:.2px; }
+    .accent{ color:var(--primary); }
+
+    .navlinks{ margin-top:18px; display:flex; flex-direction:column; gap:6px; }
+    .navlinks a{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; color:var(--text); text-decoration:none; border:1px solid transparent; }
+    .navlinks a:hover{ background:rgba(13,110,253,.06); border-color:rgba(13,110,253,.18); color:var(--primary); }
+    .navlinks a[aria-current="true"]{ background:rgba(13,110,253,.10); border-color:rgba(13,110,253,.28); color:var(--primary); }
+
+    .content{ padding:24px; }
+    .section{ max-width:1100px; margin:0 auto 28px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:24px; }
+    .section h2{ margin:0 0 10px; font-weight:800; }
+    .muted{ color:var(--muted); }
+
+    /* Controls */
+    .toolbar{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:12px 0 16px; }
+    .toolbar .field{ display:flex; align-items:center; gap:8px; }
+    .input, select{
+      border:1px solid var(--border); background:var(--surface); color:var(--text);
+      border-radius:10px; padding:10px 12px; outline:none; min-height:40px;
+    }
+    .input{ flex:1 1 280px; min-width:220px; }
+    .btn{ border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:10px; padding:10px 12px; cursor:pointer; }
+    .btn.primary{ border-color:rgba(13,110,253,.25); background:rgba(13,110,253,.10); color:var(--primary); }
+
+    /* Movie grid */
+    .grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:14px; }
+    .card{ border:1px solid var(--border); background:var(--surface); border-radius:14px; overflow:hidden; box-shadow:var(--shadow); display:flex; flex-direction:column; }
+    .poster{ width:100%; aspect-ratio:16/9; object-fit:cover; background:#0b1220; }
+    .card-body{ padding:14px; display:grid; gap:6px; }
+    .title-row{ display:flex; justify-content:space-between; align-items:start; gap:10px; }
+    .movie-title{ font-weight:800; line-height:1.3; }
+    .pill{ font-size:.8rem; padding:3px 8px; border-radius:999px; border:1px solid var(--border); color:var(--muted); background:rgba(255,255,255,.04); }
+    .pill.primary{ border-color:rgba(13,110,253,.25); color:var(--primary); background:rgba(13,110,253,.10); }
+    .meta{ color:var(--muted); font-size:.95rem; }
+    .tags{ display:flex; flex-wrap:wrap; gap:6px; }
+
+    /* Analytics */
+    .charts{ display:grid; gap:16px; grid-template-columns:1fr; }
+    @media (min-width: 900px){ .charts{ grid-template-columns:1fr 1fr; } }
+
+    /* Footer + theme toggle */
+    .toggle{ position:fixed; right:16px; bottom:16px; z-index:1000; border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:999px; padding:10px 14px; box-shadow:var(--shadow); cursor:pointer; }
+
+    :focus-visible{ outline:2px solid var(--primary); outline-offset:2px; border-radius:8px; }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <!-- Sidebar (fixed on desktop) -->
+    <aside class="sidebar">
+      <div class="profile">
+        <img class="avatar" src="assets/profile.jpg" alt="Profile" />
+        <div class="title">My <span class="accent">Movies</span></div>
+        <div class="muted" style="font-size:.95rem">Personal watch log · JSON-powered</div>
+      </div>
+      <nav class="navlinks">
+        <a href="#library" aria-current="true">Library</a>
+        <a href="#analytics">Analytics</a>
+        <a href="#about">About</a>
+      </nav>
+      <div style="margin-top:18px; font-size:.92rem" class="muted">
+        Data folder: <code>/data/movies.json</code><br>
+        Optional OMDb API key (for posters): set in script.
+      </div>
+    </aside>
+
+    <!-- Main content -->
+    <main class="content">
+      <!-- Library -->
+      <section class="section" id="library">
+        <h2>Library</h2>
+        <p class="muted" style="margin-top:-4px">Search, filter, and sort your watched movies. Cards show personal notes and metadata.</p>
+
+        <div class="toolbar">
+          <input id="q" class="input" type="search" placeholder="Search title, director, cast, tags…" aria-label="Search" />
+          <div class="field">
+            <label for="yearMin" class="muted">Year</label>
+            <select id="yearMin"></select>
+            <span class="muted">–</span>
+            <select id="yearMax"></select>
+          </div>
+          <div class="field">
+            <label for="sort" class="muted">Sort</label>
+            <select id="sort">
+              <option value="watched_desc">Watched date ↓</option>
+              <option value="year_desc">Year ↓</option>
+              <option value="title_asc">Title A–Z</option>
+              <option value="rating_desc">My rating ↓</option>
+            </select>
+          </div>
+          <button id="btnExport" class="btn">Export CSV</button>
+          <button id="btnEnrich" class="btn primary">Enrich posters</button>
+        </div>
+
+        <div id="grid" class="grid" aria-live="polite"></div>
+        <div id="loadError" class="muted" style="margin-top:10px; display:none; color:#ffb4b4">Could not load <code>data/movies.json</code>.</div>
+      </section>
+
+      <!-- Analytics (optional) -->
+      <section class="section" id="analytics">
+        <h2>Analytics</h2>
+        <p class="muted" style="margin-top:-4px">Quick glance at your watch history. (Charts render from your JSON.)</p>
+        <div class="charts">
+          <canvas id="chartByYear" height="220"></canvas>
+          <canvas id="chartByDirector" height="220"></canvas>
+        </div>
+      </section>
+
+      <!-- About -->
+      <section class="section" id="about">
+        <h2>About</h2>
+        <p class="muted">This is a minimal, static site that reads <code>/data/movies.json</code> and renders your watch log. You can keep the JSON in a repo and deploy with GitHub Pages. Optional enrichment via the OMDb API will fetch posters and extra info by <code>imdb_id</code> or title+year.</p>
+        <ul>
+          <li>Data schema documented in the code comments (see <code>MOVIE_SCHEMA</code>).</li>
+          <li>To add entries, edit <code>data/movies.json</code> (array of movie objects).</li>
+          <li>CSV export includes current filters.</li>
+        </ul>
+      </section>
+    </main>
+  </div>
+
+  <button class="toggle" id="themeToggle" aria-label="Toggle theme">🌗 Theme</button>
+
+  <script>
+  // ======== CONFIG ========
+  const DATA_URL = 'data/movies.json';
+  const OMDB_API_KEY = '';// Optional: put your OMDb key here to enable posters
+  const CONCURRENCY = 3;   // poster fetch concurrency
+
+  // JSON schema (documentation)
+  const MOVIE_SCHEMA = {
+    title: 'string',
+    year: 'number',
+    director: 'string | string[]',
+    imdb_id: 'string | null', // e.g., tt0110912
+    genres: 'string[]',
+    cast: 'string[]',
+    runtime_min: 'number | null',
+    // Personal metadata
+    watched_date: 'YYYY-MM-DD',
+    location: 'string',
+    rating: 'number | null', // 1..10
+    tags: 'string[]',
+    notes: 'string'
+  };
+
+  // ======== UTILITIES ========
+  const $ = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+
+  function escapeHtml(s=''){ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c])); }
+  function fmtDate(iso){ if(!iso) return ''; try{ const d=new Date(iso); return d.toLocaleDateString(); }catch(e){ return iso; } }
+  function uniq(arr){ return Array.from(new Set(arr)); }
+  function toCSV(rows){
+    if(!rows.length) return '';
+    const headers = Object.keys(rows[0]);
+    const esc = v => '"'+String(v??'').replace(/"/g,'""')+'"';
+    return [headers.map(esc).join(','), ...rows.map(r=>headers.map(h=>esc(r[h])).join(','))].join('\n');
+  }
+
+  // ======== DATA LOADING ========
+  let RAW = [];// original array
+  let ENRICH_CACHE = {};// imdb_id -> {Poster, Plot, Rated, ...}
+
+  async function loadData(){
+    const res = await fetch(DATA_URL, {cache:'no-store'});
+    if(!res.ok) throw new Error('Failed to load movies.json');
+    const data = await res.json();
+    // Normalize director -> array
+    return data.map(m=>({
+      ...m,
+      director: Array.isArray(m.director) ? m.director : (m.director? [m.director] : []),
+      genres: Array.isArray(m.genres) ? m.genres : (m.genres? String(m.genres).split(',').map(s=>s.trim()) : []),
+      cast: Array.isArray(m.cast) ? m.cast : (m.cast? String(m.cast).split(',').map(s=>s.trim()) : []),
+      tags: Array.isArray(m.tags) ? m.tags : (m.tags? String(m.tags).split(',').map(s=>s.trim().toLowerCase()) : []),
+      year: Number(m.year)||null,
+      rating: (m.rating==null? null : Number(m.rating)),
+    }));
+  }
+
+  async function enrichPoster(movie){
+    if(!OMDB_API_KEY) return null;
+    try{
+      const q = movie.imdb_id ? `i=${encodeURIComponent(movie.imdb_id)}` : `t=${encodeURIComponent(movie.title)}&y=${movie.year||''}`;
+      const url = `https://www.omdbapi.com/?apikey=${OMDB_API_KEY}&${q}`;
+      const res = await fetch(url);
+      const j = await res.json();
+      if(j && j.Response!=='False'){
+        return { Poster: j.Poster && j.Poster!=='N/A' ? j.Poster : '', Rated: j.Rated||'', Plot: j.Plot||'', Runtime: j.Runtime||'' };
+      }
+    }catch(e){ console.warn('OMDb error', e); }
+    return null;
+  }
+
+  async function enrichAll(movies){
+    const queue = movies.filter(m=>!m._poster && (m.imdb_id || m.title));
+    let i=0; const out=[];
+    async function worker(){
+      while(i<queue.length){
+        const m = queue[i++];
+        const key = m.imdb_id || `${m.title}_${m.year}`;
+        if(ENRICH_CACHE[key]){ m._poster = ENRICH_CACHE[key].Poster; m._omdb = ENRICH_CACHE[key]; out.push(m); continue; }
+        const data = await enrichPoster(m);
+        if(data){ m._poster = data.Poster; m._omdb = data; ENRICH_CACHE[key]=data; out.push(m); }
+        render();// progressive update
+      }
+    }
+    const workers = Array.from({length:CONCURRENCY}, worker);
+    await Promise.all(workers);
+    render();
+  }
+
+  // ======== STATE & FILTERING ========
+  const state = { q:'', yearMin:null, yearMax:null, sort:'watched_desc' };
+
+  function computeYearBounds(list){
+    const years = list.map(m=>m.year).filter(Boolean);
+    const min = Math.min(...years); const max=Math.max(...years);
+    return {min,isFiniteMin:isFinite(min), max,isFiniteMax:isFinite(max)};
+  }
+
+  function applyFilters(list){
+    const q = state.q.toLowerCase();
+    return list.filter(m=>{
+      const inYear = (!state.yearMin || (m.year||0) >= state.yearMin) && (!state.yearMax || (m.year||0) <= state.yearMax);
+      if(!inYear) return false;
+      if(!q) return true;
+      const hay = [m.title, m.director.join(' '), m.genres.join(' '), m.cast.join(' '), m.tags.join(' '), m.notes||''].join(' ').toLowerCase();
+      return hay.includes(q);
+    }).sort((a,b)=>{
+      switch(state.sort){
+        case 'watched_desc': return (new Date(b.watched_date||0)) - (new Date(a.watched_date||0));
+        case 'year_desc': return (b.year||0) - (a.year||0);
+        case 'title_asc': return (a.title||'').localeCompare(b.title||'');
+        case 'rating_desc': return (b.rating||0) - (a.rating||0);
+        default: return 0;
+      }
+    });
+  }
+
+  // ======== RENDER ========
+  function movieCard(m){
+    const poster = m._poster || 'assets/poster-fallback.svg';
+    const directors = m.director.join(', ');
+    const tags = (m.tags||[]).map(t=>`<span class="pill">${escapeHtml(t)}</span>`).join(' ');
+    return `
+      <article class="card" data-year="${m.year||''}">
+        <img class="poster" src="${poster}" alt="Poster for ${escapeHtml(m.title)}" onerror="this.src='assets/poster-fallback.svg'" />
+        <div class="card-body">
+          <div class="title-row">
+            <div>
+              <div class="movie-title">${escapeHtml(m.title)}</div>
+              <div class="meta">${m.year? m.year : ''} · ${escapeHtml(directors)}</div>
+            </div>
+            ${m.rating? `<span class="pill primary">★ ${m.rating.toFixed(1)}</span>` : ''}
+          </div>
+          <div class="meta">Watched: ${escapeHtml(fmtDate(m.watched_date))}${m.location? ` · ${escapeHtml(m.location)}`:''}</div>
+          ${m.notes? `<div class="meta">Notes: ${escapeHtml(m.notes)}</div>`:''}
+          ${m.tags?.length? `<div class="tags">${tags}</div>`:''}
+        </div>
+      </article>
+    `;
+  }
+
+  function render(){
+    const grid = $('#grid');
+    const list = applyFilters(RAW);
+    grid.innerHTML = list.map(movieCard).join('');
+    drawCharts(list);
+  }
+
+  // ======== UI WIRING ========
+  function populateYearSelects(min,max){
+    const yMin = $('#yearMin'); const yMax = $('#yearMax');
+    yMin.innerHTML = '<option value="">Min</option>';
+    yMax.innerHTML = '<option value="">Max</option>';
+    for(let y=max; y>=min; y--){
+      yMin.insertAdjacentHTML('beforeend', `<option value="${y}">${y}</option>`);
+      yMax.insertAdjacentHTML('beforeend', `<option value="${y}">${y}</option>`);
+    }
+  }
+
+  function bindUI(){
+    $('#q').addEventListener('input', e=>{ state.q = e.target.value; render(); });
+    $('#sort').addEventListener('change', e=>{ state.sort = e.target.value; render(); });
+    $('#yearMin').addEventListener('change', e=>{ state.yearMin = Number(e.target.value)||null; render(); });
+    $('#yearMax').addEventListener('change', e=>{ state.yearMax = Number(e.target.value)||null; render(); });
+    $('#btnExport').addEventListener('click', exportCSV);
+    $('#btnEnrich').addEventListener('click', ()=> enrichAll(applyFilters(RAW)) );
+  }
+
+  function exportCSV(){
+    const list = applyFilters(RAW);
+    const rows = list.map(m=>({
+      title: m.title,
+      year: m.year,
+      director: m.director.join('; '),
+      imdb_id: m.imdb_id||'',
+      genres: m.genres.join('; '),
+      cast: m.cast.join('; '),
+      runtime_min: m.runtime_min||'',
+      watched_date: m.watched_date||'',
+      location: m.location||'',
+      rating: m.rating??'',
+      tags: (m.tags||[]).join('; '),
+      notes: m.notes||''
+    }));
+    const csv = toCSV(rows);
+    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'movies_export.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  // ======== ANALYTICS ========
+  let chartYear, chartDirector;
+  function drawCharts(list){
+    // By year (count of watched)
+    const byYear = new Map();
+    list.forEach(m=>{ const y = m.year||'Unknown'; byYear.set(y, (byYear.get(y)||0)+1); });
+    const yearLabels = Array.from(byYear.keys()).sort((a,b)=> (a==='Unknown')?1: (b==='Unknown')? -1 : a-b);
+    const yearCounts = yearLabels.map(k=>byYear.get(k));
+
+    const ctx1 = $('#chartByYear');
+    if(chartYear) chartYear.destroy();
+    chartYear = new Chart(ctx1, {
+      type:'bar', data:{ labels:yearLabels, datasets:[{ label:'Watched', data:yearCounts }] },
+      options:{ plugins:{ legend:{ display:false } }, scales:{ x:{ ticks:{ color:getComputedStyle(document.documentElement).getPropertyValue('--muted') } }, y:{ beginAtZero:true } } }
+    });
+
+    // Top directors (top 10)
+    const byDir = new Map();
+    list.forEach(m=> m.director.forEach(d=> byDir.set(d, (byDir.get(d)||0)+1)) );
+    const dirEntries = Array.from(byDir.entries()).sort((a,b)=> b[1]-a[1]).slice(0,10);
+    const dirLabels = dirEntries.map(([d])=>d);
+    const dirCounts = dirEntries.map(([,c])=>c);
+
+    const ctx2 = $('#chartByDirector');
+    if(chartDirector) chartDirector.destroy();
+    chartDirector = new Chart(ctx2, {
+      type:'bar', data:{ labels:dirLabels, datasets:[{ label:'Count', data:dirCounts }] },
+      options:{ indexAxis:'y', plugins:{ legend:{ display:false } }, scales:{ y:{ ticks:{ color:getComputedStyle(document.documentElement).getPropertyValue('--muted') } }, x:{ beginAtZero:true } } }
+    });
+  }
+
+  // ======== THEME TOGGLE ========
+  (function(){
+    const key='theme';
+    const btn=$('#themeToggle');
+    const root=document.documentElement;
+    const apply=t=>{ root.setAttribute('data-theme', t); document.documentElement.style.colorScheme=(t==='dark'?'dark':'light'); };
+    const saved=localStorage.getItem(key); if(saved) apply(saved);
+    btn.addEventListener('click', ()=>{ const cur=root.getAttribute('data-theme')|| (matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'); const next=cur==='dark'?'light':'dark'; apply(next); localStorage.setItem(key,next); });
+  })();
+
+  // ======== BOOT ========
+  (async function init(){
+    try{
+      RAW = await loadData();
+      const {min,max} = computeYearBounds(RAW);
+      populateYearSelects(min, max);
+      bindUI();
+      render();
+    }catch(e){ console.error(e); $('#loadError').style.display='block'; }
+  })();
+  </script>
+</body>
+</html>
