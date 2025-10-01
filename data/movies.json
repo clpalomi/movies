@@ -1,0 +1,44 @@
+[
+  {
+    "title": "Past Lives",
+    "year": 2023,
+    "director": "Celine Song",
+    "imdb_id": "tt13238346",
+    "genres": ["Drama", "Romance"],
+    "cast": ["Greta Lee", "Teo Yoo", "John Magaro"],
+    "runtime_min": 106,
+    "watched_date": "2024-02-17",
+    "location": "Barcelona, Verdi Park",
+    "rating": 8.7,
+    "tags": ["korean", "romance", "friendship"],
+    "notes": "Quiet, lingering. Great score."
+  },
+  {
+    "title": "The Zone of Interest",
+    "year": 2023,
+    "director": "Jonathan Glazer",
+    "imdb_id": "tt7160372",
+    "genres": ["Drama", "War"],
+    "cast": ["Christian Friedel", "Sandra Hüller"],
+    "runtime_min": 105,
+    "watched_date": "2024-03-05",
+    "location": "Home",
+    "rating": 9.0,
+    "tags": ["sound design", "holocaust"],
+    "notes": "Soundscape as protagonist."
+  },
+  {
+    "title": "Only Lovers Left Alive",
+    "year": 2013,
+    "director": "Jim Jarmusch",
+    "imdb_id": "tt1714915",
+    "genres": ["Drama", "Romance"],
+    "cast": ["Tilda Swinton", "Tom Hiddleston"],
+    "runtime_min": 123,
+    "watched_date": "2024-04-12",
+    "location": "Home",
+    "rating": 8.2,
+    "tags": ["music", "detroit", "tangier"],
+    "notes": "Guitar porn. Mood piece."
+  }
+]
