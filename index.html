@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>My Movies — Watch Log</title>
+  <title>Movies I watched — Watch Log</title>
   <link rel="icon" href="favicon.ico" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -120,18 +120,14 @@
     <aside class="sidebar">
       <div class="profile">
         <img class="avatar" src="images/persona.jpg" alt="Profile" />
-        <div class="title">My <span class="accent">Movies</span></div>
-        <div class="muted" style="font-size:.95rem">Personal watch log · JSON-powered</div>
+        <div class="title"><span class="accent">MoviesIWatched</span></div>
+        <div class="muted" style="font-size:.95rem">Personal watch log</div>
       </div>
       <nav class="navlinks">
         <a href="#library" aria-current="true">Library</a>
         <a href="#analytics">Analytics</a>
         <a href="https://clpalomi.github.io/" target="_blank" rel="noopener">About me</a>
       </nav>
-      <div style="margin-top:18px; font-size:.92rem" class="muted">
-        Data folder: <code>/data/movies.json</code><br>
-        Posters are currently disabled (can be enabled later).
-      </div>
     </aside>
 
     <!-- Main content -->
@@ -139,7 +135,7 @@
       <!-- Library -->
       <section class="section" id="library">
         <h2>Library</h2>
-        <p class="muted" style="margin-top:-4px">Search, filter, and sort your watched movies. Cards show personal notes and metadata.</p>
+        <p class="muted" style="margin-top:-4px">Search, filter, and sort my watched movies.</p>
 
         <div class="toolbar">
           <input id="q" class="input" type="search" placeholder="Search title, director, cast, tags…" aria-label="Search" />
@@ -162,7 +158,6 @@
                   </div>
 
         <div id="grid" class="grid" aria-live="polite"></div>
-        <div id="loadError" class="muted" style="margin-top:10px; display:none; color:#ffb4b4">Could not load <code>data/movies.json</code>.</div>
       </section>
 
       <!-- Analytics (optional) 
