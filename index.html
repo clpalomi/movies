@@ -126,7 +126,7 @@
       <nav class="navlinks">
         <a href="#library" aria-current="true">Library</a>
         <a href="#analytics">Analytics</a>
-        <a href="#about">About</a>
+        <a href="https://clpalomi.github.io/" target="_blank" rel="noopener">About me</a>
       </nav>
       <div style="margin-top:18px; font-size:.92rem" class="muted">
         Data folder: <code>/data/movies.json</code><br>
@@ -165,7 +165,7 @@
         <div id="loadError" class="muted" style="margin-top:10px; display:none; color:#ffb4b4">Could not load <code>data/movies.json</code>.</div>
       </section>
 
-      <!-- Analytics (optional) -->
+      <!-- Analytics (optional) 
       <section class="section" id="analytics">
         <h2>Analytics</h2>
         <p class="muted" style="margin-top:-4px">Quick glance at your watch history. (Charts render from your JSON.)</p>
@@ -174,18 +174,8 @@
           <canvas id="chartByDirector" height="220"></canvas>
         </div>
       </section>
+      -->
 
-      <!-- About -->
-      <section class=\"section\" id=\"about\">
-        <h2>About</h2>
-        <p class=\"muted\">This is a minimal, static site that reads <code>/data/movies.json</code> and renders your watch log. You can keep the JSON in a repo and deploy with GitHub Pages. Optional posters can be served from <code>/posters/</code> using the movie <code>imdb_id</code> or a slug of the title as the filename.</p>
-        <ul>
-          <li>Data schema documented in the code comments (see <code>MOVIE_SCHEMA</code>).</li>
-          <li>To add entries, edit <code>data/movies.json</code> (array of movie objects).</li>
-          <li>CSV export includes current filters.</li>
-        </ul>
-        <a class=\"btn primary\" href=\"https://clpalomi.github.io/\" target=\"_blank\" rel=\"noopener\">Visit my personal website</a>
-      </section>
     </main>
   </div>
 
