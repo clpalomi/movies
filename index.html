@@ -15,14 +15,15 @@
   <style>
     /* Palette refresh: a bit closer to your personal site, but distinct */
 :root{
-  --primary:#1f6feb;      /* softer blue */
+  --primary:#1f6feb;
   --primary-600:#1a61d1;
-  --bg:#f7f9fc;           /* lighter background */
-  --surface:transparent;  /* no card chrome for sections */
+  --bg:#f7f9fc;
+  --surface:transparent;
   --text:#0f172a;
   --muted:#667085;
   --border:#e6eaf0;
   --shadow:none;
+  --sidebar-w:300px;
 }
     @media (prefers-color-scheme: light){
       :root{ --bg:#f4f7fb; --surface:#ffffff; --muted:#677385; --text:#141a22; --border:#e6e9ef; --shadow:0 8px 26px rgba(0,0,0,.08); }
@@ -101,34 +102,46 @@
     .btn.primary{ border-color:rgba(13,110,253,.25); background:rgba(13,110,253,.10); color:var(--primary); }
 
     /* Movie grid */
-    /* Keep movie cards as cards */
-    .grid .card{
-        border:1px solid var(--border);
-        background:#ffffff;
-        box-shadow:0 6px 18px rgba(16,24,40,.06);
-    }
-    
-    
-/* flip card */
-/* Flip affordance */
+.grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap:14px;
+}
+
+/* Flip card + affordance */
 .flip{ cursor:pointer; }
+.flip .card{
+  height:100%;
+  border:1px solid var(--border);
+  background:#ffffff;
+  box-shadow:0 6px 18px rgba(16,24,40,.06);
+  border-radius:14px;
+  overflow:hidden;
+}
 .flip:hover .card{
   border-color: rgba(31,111,235,.35);
   box-shadow:0 10px 24px rgba(31,111,235,.12);
 }
-.card-inner{ position:relative; width:100%; height:100%; transform-style:preserve-3d; transition:transform .6s cubic-bezier(.2,.8,.2,1); }
+
+.card-inner{
+  position:relative; width:100%;
+  transform-style:preserve-3d;
+  transition:transform .6s cubic-bezier(.2,.8,.2,1);
+  min-height:160px; /* ensure a reasonable height so faces overlap correctly */
+}
 .flip.is-flipped .card-inner{ transform:rotateY(180deg); }
+
 .card-face{ position:relative; backface-visibility:hidden; -webkit-backface-visibility:hidden; }
 .card-face.back{ position:absolute; inset:0; transform:rotateY(180deg); }
+
 .card-body{ padding:14px; display:grid; gap:6px; }
-    .poster{ width:100%; aspect-ratio:16/9; object-fit:cover; background:#0b1220; }
-    .card-body{ padding:14px; display:grid; gap:6px; }
-    .title-row{ display:flex; justify-content:space-between; align-items:start; gap:10px; }
-    .movie-title{ font-weight:800; line-height:1.3; }
-    .pill{ font-size:.8rem; padding:3px 8px; border-radius:999px; border:1px solid var(--border); color:var(--muted); background:rgba(255,255,255,.04); }
-    .pill.primary{ border-color:rgba(13,110,253,.25); color:var(--primary); background:rgba(13,110,253,.10); }
-    .meta{ color:var(--muted); font-size:.95rem; }
-    .tags{ display:flex; flex-wrap:wrap; gap:6px; }
+.title-row{ display:flex; justify-content:space-between; align-items:start; gap:10px; }
+.movie-title{ font-weight:800; line-height:1.3; }
+.pill{ font-size:.8rem; padding:3px 8px; border-radius:999px; border:1px solid var(--border); color:var(--muted); background:rgba(255,255,255,.04); }
+.pill.primary{ border-color:rgba(13,110,253,.25); color:var(--primary); background:rgba(13,110,253,.10); }
+.meta{ color:var(--muted); font-size:.95rem; }
+.tags{ display:flex; flex-wrap:wrap; gap:6px; }
+
 
     /* Analytics */
     .charts{ display:grid; gap:16px; grid-template-columns:1fr; }
@@ -360,13 +373,6 @@
     const list = applyFilters(RAW);
     grid.innerHTML = list.map(movieCard).join('');
     // Flip interaction: delegate to grid
-    // Flipping works for all cards and can toggle back/forth
-    const GRID = document.getElementById('grid');
-    GRID.addEventListener('click', (e)=>{
-      const card = e.target.closest('.flip');
-      if (!card) return;
-      card.classList.toggle('is-flipped');
-    });
     drawCharts(list);
   }
 
@@ -415,36 +421,47 @@
     URL.revokeObjectURL(a.href);
   }
 
+  // Global delegated flip handler (bind once)
+document.getElementById('grid').addEventListener('click', (e)=>{
+  const card = e.target.closest('.flip');
+  if (!card) return;
+  card.classList.toggle('is-flipped');
+});
+
+
   // ======== ANALYTICS ========
-  let chartYear, chartDirector;
-  function drawCharts(list){
-    // By year (count of watched)
-    const byYear = new Map();
-    list.forEach(m=>{ const y = m.year||'Unknown'; byYear.set(y, (byYear.get(y)||0)+1); });
-    const yearLabels = Array.from(byYear.keys()).sort((a,b)=> (a==='Unknown')?1: (b==='Unknown')? -1 : a-b);
-    const yearCounts = yearLabels.map(k=>byYear.get(k));
+let chartYear, chartDirector;
+function drawCharts(list){
+  const ctx1 = document.getElementById('chartByYear');
+  const ctx2 = document.getElementById('chartByDirector');
+  if(!ctx1 || !ctx2){ return; }  // analytics section not present
 
-    const ctx1 = $('#chartByYear');
-    if(chartYear) chartYear.destroy();
-    chartYear = new Chart(ctx1, {
-      type:'bar', data:{ labels:yearLabels, datasets:[{ label:'Watched', data:yearCounts }] },
-      options:{ plugins:{ legend:{ display:false } }, scales:{ x:{ ticks:{ color:getComputedStyle(document.documentElement).getPropertyValue('--muted') } }, y:{ beginAtZero:true } } }
-    });
+  // By year
+  const byYear = new Map();
+  list.forEach(m=>{ const y = m.year||'Unknown'; byYear.set(y, (byYear.get(y)||0)+1); });
+  const yearLabels = Array.from(byYear.keys()).sort((a,b)=> (a==='Unknown')?1: (b==='Unknown')?-1 : a-b);
+  const yearCounts = yearLabels.map(k=>byYear.get(k));
+  if(chartYear) chartYear.destroy();
+  chartYear = new Chart(ctx1, {
+    type:'bar',
+    data:{ labels:yearLabels, datasets:[{ label:'Watched', data:yearCounts }] },
+    options:{ plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true } } }
+  });
 
-    // Top directors (top 10)
-    const byDir = new Map();
-    list.forEach(m=> m.director.forEach(d=> byDir.set(d, (byDir.get(d)||0)+1)) );
-    const dirEntries = Array.from(byDir.entries()).sort((a,b)=> b[1]-a[1]).slice(0,10);
-    const dirLabels = dirEntries.map(([d])=>d);
-    const dirCounts = dirEntries.map(([,c])=>c);
-
-    const ctx2 = $('#chartByDirector');
-    if(chartDirector) chartDirector.destroy();
-    chartDirector = new Chart(ctx2, {
-      type:'bar', data:{ labels:dirLabels, datasets:[{ label:'Count', data:dirCounts }] },
-      options:{ indexAxis:'y', plugins:{ legend:{ display:false } }, scales:{ y:{ ticks:{ color:getComputedStyle(document.documentElement).getPropertyValue('--muted') } }, x:{ beginAtZero:true } } }
-    });
-  }
+  // Top directors
+  const byDir = new Map();
+  list.forEach(m=> m.director.forEach(d=> byDir.set(d, (byDir.get(d)||0)+1)) );
+  const dirEntries = Array.from(byDir.entries()).sort((a,b)=> b[1]-a[1]).slice(0,10);
+  const dirLabels = dirEntries.map(([d])=>d);
+  const dirCounts = dirEntries.map(([,c])=>c);
+  if(chartDirector) chartDirector.destroy();
+  chartDirector = new Chart(ctx2, {
+    type:'bar',
+    data:{ labels:dirLabels, datasets:[{ label:'Count', data:dirCounts }] },
+    options:{ indexAxis:'y', plugins:{ legend:{ display:false } }, scales:{ x:{ beginAtZero:true } } }
+  });
+}
+    
 
   // ======== THEME TOGGLE ========
   (function(){
