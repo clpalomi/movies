@@ -13,20 +13,17 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <style>
-    :root{
-      /* Unified palette */
-      --primary:#0d6efd;
-      --primary-600:#0b5ed7;
-      --bg:#0f1420;            /* dark default; toggle can flip */
-      --surface:#111827;
-      --muted:#a8b3c7;
-      --text:#e9eef7;
-      --border:#1f2937;
-      --shadow:0 10px 28px rgba(0,0,0,.35);
-      --radius:16px;
-      --radius-sm:12px;
-      --sidebar-w:300px;
-    }
+    /* Palette refresh: a bit closer to your personal site, but distinct */
+:root{
+  --primary:#1f6feb;      /* softer blue */
+  --primary-600:#1a61d1;
+  --bg:#f7f9fc;           /* lighter background */
+  --surface:transparent;  /* no card chrome for sections */
+  --text:#0f172a;
+  --muted:#667085;
+  --border:#e6eaf0;
+  --shadow:none;
+}
     @media (prefers-color-scheme: light){
       :root{ --bg:#f4f7fb; --surface:#ffffff; --muted:#677385; --text:#141a22; --border:#e6e9ef; --shadow:0 8px 26px rgba(0,0,0,.08); }
     }
@@ -36,7 +33,9 @@
     *{ box-sizing:border-box; }
     body{
       margin:0;
-      background:linear-gradient(180deg, var(--bg), #0c111b 40%, var(--bg));
+      background:
+        radial-gradient(1200px 400px at -10% -10%, rgba(31,111,235,.06), transparent 60%),
+        linear-gradient(180deg, #f7f9fc, #ffffff 60%, #f7f9fc);
       color:var(--text);
       font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
       line-height:1.6; scroll-behavior:smooth;
@@ -70,7 +69,23 @@
     .navlinks a[aria-current="true"]{ background:rgba(13,110,253,.10); border-color:rgba(13,110,253,.28); color:var(--primary); }
 
     .content{ padding:24px; }
-    .section{ max-width:1100px; margin:0 auto 28px; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:24px; }
+    /* Sections are no longer card-like; keep roomy spacing */
+    .section{
+      background:transparent !important;
+      border:none !important;
+      box-shadow:none !important;
+      padding:18px 0 28px !important;
+      max-width:1100px;
+      margin:0 auto 12px;
+    }
+    .section + .section{
+      border-top:1px dashed var(--border);
+      padding-top:28px !important;
+    }
+    
+    
+
+    
     .section h2{ margin:0 0 10px; font-weight:800; }
     .muted{ color:var(--muted); }
 
@@ -86,10 +101,21 @@
     .btn.primary{ border-color:rgba(13,110,253,.25); background:rgba(13,110,253,.10); color:var(--primary); }
 
     /* Movie grid */
-    .grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:14px; }
-    .card{ border:1px solid var(--border); background:var(--surface); border-radius:14px; overflow:hidden; box-shadow:var(--shadow); display:block; } /* base */
+    /* Keep movie cards as cards */
+    .grid .card{
+        border:1px solid var(--border);
+        background:#ffffff;
+        box-shadow:0 6px 18px rgba(16,24,40,.06);
+    }
+    
+    
 /* flip card */
-.flip{ perspective:1000px; }
+/* Flip affordance */
+.flip{ cursor:pointer; }
+.flip:hover .card{
+  border-color: rgba(31,111,235,.35);
+  box-shadow:0 10px 24px rgba(31,111,235,.12);
+}
 .card-inner{ position:relative; width:100%; height:100%; transform-style:preserve-3d; transition:transform .6s cubic-bezier(.2,.8,.2,1); }
 .flip.is-flipped .card-inner{ transform:rotateY(180deg); }
 .card-face{ position:relative; backface-visibility:hidden; -webkit-backface-visibility:hidden; }
@@ -334,11 +360,13 @@
     const list = applyFilters(RAW);
     grid.innerHTML = list.map(movieCard).join('');
     // Flip interaction: delegate to grid
-    grid.addEventListener('click', (e)=>{
+    // Flipping works for all cards and can toggle back/forth
+    const GRID = document.getElementById('grid');
+    GRID.addEventListener('click', (e)=>{
       const card = e.target.closest('.flip');
-      if(!card) return;
+      if (!card) return;
       card.classList.toggle('is-flipped');
-    }, { once: true });
+    });
     drawCharts(list);
   }
 
