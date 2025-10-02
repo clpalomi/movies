@@ -60,7 +60,7 @@
     }
 
     .profile{ display:flex; flex-direction:column; align-items:center; text-align:center; gap:12px; }
-    .avatar{ width:110px; height:110px; border-radius:50%; border:3px solid rgba(13,110,253,.25); box-shadow:var(--shadow); object-fit:cover; }
+    .avatar{ width:180px; height:120px; border-radius:16px; border:3px solid rgba(13,110,253,.25); box-shadow:var(--shadow); object-fit:cover; object-position:center; }
     .title{ font-weight:800; font-size:26px; letter-spacing:.2px; }
     .accent{ color:var(--primary); }
 
@@ -87,7 +87,14 @@
 
     /* Movie grid */
     .grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:14px; }
-    .card{ border:1px solid var(--border); background:var(--surface); border-radius:14px; overflow:hidden; box-shadow:var(--shadow); display:flex; flex-direction:column; }
+    .card{ border:1px solid var(--border); background:var(--surface); border-radius:14px; overflow:hidden; box-shadow:var(--shadow); display:block; } /* base */
+/* flip card */
+.flip{ perspective:1000px; }
+.card-inner{ position:relative; width:100%; height:100%; transform-style:preserve-3d; transition:transform .6s cubic-bezier(.2,.8,.2,1); }
+.flip.is-flipped .card-inner{ transform:rotateY(180deg); }
+.card-face{ position:relative; backface-visibility:hidden; -webkit-backface-visibility:hidden; }
+.card-face.back{ position:absolute; inset:0; transform:rotateY(180deg); }
+.card-body{ padding:14px; display:grid; gap:6px; }
     .poster{ width:100%; aspect-ratio:16/9; object-fit:cover; background:#0b1220; }
     .card-body{ padding:14px; display:grid; gap:6px; }
     .title-row{ display:flex; justify-content:space-between; align-items:start; gap:10px; }
@@ -112,9 +119,9 @@
     <!-- Sidebar (fixed on desktop) -->
     <aside class="sidebar">
       <div class="profile">
-        <img class="avatar" src="assets/profile.jpg" alt="Profile" />
+        <img class="avatar" src="images/persona.jpg" alt="Profile" />
         <div class="title">My <span class="accent">Movies</span></div>
-        <div class="muted" style="font-size:.95rem">Personal watch log</div>
+        <div class="muted" style="font-size:.95rem">Personal watch log · JSON-powered</div>
       </div>
       <nav class="navlinks">
         <a href="#library" aria-current="true">Library</a>
@@ -122,7 +129,8 @@
         <a href="#about">About</a>
       </nav>
       <div style="margin-top:18px; font-size:.92rem" class="muted">
-        Posters are currently disabled.
+        Data folder: <code>/data/movies.json</code><br>
+        Posters are currently disabled (can be enabled later).
       </div>
     </aside>
 
@@ -157,7 +165,7 @@
         <div id="loadError" class="muted" style="margin-top:10px; display:none; color:#ffb4b4">Could not load <code>data/movies.json</code>.</div>
       </section>
 
-      <!-- Analytics (optional) 
+      <!-- Analytics (optional) -->
       <section class="section" id="analytics">
         <h2>Analytics</h2>
         <p class="muted" style="margin-top:-4px">Quick glance at your watch history. (Charts render from your JSON.)</p>
@@ -166,20 +174,18 @@
           <canvas id="chartByDirector" height="220"></canvas>
         </div>
       </section>
-      -->
 
-      <!-- About
-      <section class="section" id="about">
+      <!-- About -->
+      <section class=\"section\" id=\"about\">
         <h2>About</h2>
-        <p class="muted">This is a minimal, static site that reads <code>/data/movies.json</code> and renders your watch log. You can keep the JSON in a repo and deploy with GitHub Pages. Optional enrichment via the OMDb API will fetch posters and extra info by <code>imdb_id</code> or title+year.</p>
+        <p class=\"muted\">This is a minimal, static site that reads <code>/data/movies.json</code> and renders your watch log. You can keep the JSON in a repo and deploy with GitHub Pages. Optional posters can be served from <code>/posters/</code> using the movie <code>imdb_id</code> or a slug of the title as the filename.</p>
         <ul>
           <li>Data schema documented in the code comments (see <code>MOVIE_SCHEMA</code>).</li>
           <li>To add entries, edit <code>data/movies.json</code> (array of movie objects).</li>
           <li>CSV export includes current filters.</li>
         </ul>
+        <a class=\"btn primary\" href=\"https://clpalomi.github.io/\" target=\"_blank\" rel=\"noopener\">Visit my personal website</a>
       </section>
-      -->
-      
     </main>
   </div>
 
@@ -187,7 +193,7 @@
 
   <script>
   // ======== CONFIG ========
-  const DATA_URL = './data/movies.json';
+  const DATA_URL = 'data/movies.json';
   const OMDB_API_KEY = '';// Optional: put your OMDb key here to enable posters
   const CONCURRENCY = 3;   // poster fetch concurrency
 
@@ -305,20 +311,34 @@
   // ======== RENDER ========
   function movieCard(m){
     const directors = m.director.join(', ');
-    const tags = (m.tags||[]).map(t=>`<span class="pill">${escapeHtml(t)}</span>`).join(' ');
+    const tags = (m.tags||[]).map(t=>`<span class=\"pill\">${escapeHtml(t)}</span>`).join(' ');
+    const posterKey = (m.imdb_id || (m.title||'').toLowerCase().replace(/[^a-z0-9]+/g,'-')).replace(/^-|-$/g,'');
+    const posterPath = `posters/${posterKey}.jpg`;
     return `
-      <article class="card" data-year="${m.year||''}">
-        <div class="card-body">
-          <div class="title-row">
-            <div>
-              <div class="movie-title">${escapeHtml(m.title)}</div>
-              <div class="meta">${m.year? m.year : ''} · ${escapeHtml(directors)}</div>
+      <article class=\"flip\" data-year=\"${m.year||''}\">
+        <div class=\"card-inner\">
+          <div class=\"card card-face front\">
+            <div class=\"card-body\">
+              <div class=\"title-row\">
+                <div>
+                  <div class=\"movie-title\">${escapeHtml(m.title)}</div>
+                  <div class=\"meta\">${m.year? m.year : ''} · ${escapeHtml(directors)}</div>
+                </div>
+              </div>
             </div>
-            ${m.rating? `<span class=\"pill primary\">★ ${m.rating.toFixed(1)}</span>` : ''}
           </div>
-          <div class="meta">Watched: ${escapeHtml(fmtDate(m.watched_date))}${m.location? ` · ${escapeHtml(m.location)}`:''}</div>
-          ${m.notes? `<div class=\"meta\">Notes: ${escapeHtml(m.notes)}</div>`:''}
-          ${m.tags?.length? `<div class=\"tags\">${tags}</div>`:''}
+          <div class=\"card card-face back\">
+            <div class=\"card-body\">
+              <div class=\"meta\">Watched: ${escapeHtml(fmtDate(m.watched_date))}${m.location? ` · ${escapeHtml(m.location)}`:''}</div>
+              ${m.rating? `<div class=\"meta\">My rating: ★ ${m.rating.toFixed(1)}</div>` : ''}
+              ${m.runtime_min? `<div class=\"meta\">Runtime: ${m.runtime_min} min</div>` : ''}
+              ${(m.genres?.length? `<div class=\"meta\">Genres: ${escapeHtml(m.genres.join(', '))}</div>` : '')}
+              ${(m.cast?.length? `<div class=\"meta\">Cast: ${escapeHtml(m.cast.slice(0,6).join(', '))}${m.cast.length>6?'…':''}</div>` : '')}
+              ${m.notes? `<div class=\"meta\">Notes: ${escapeHtml(m.notes)}</div>`:''}
+              ${m.tags?.length? `<div class=\"tags\">${tags}</div>`:''}
+              <img src=\"${posterPath}\" alt=\"Poster\" style=\"width:100%; margin-top:8px; border-radius:12px;\" onerror=\"this.style.display='none'\" />
+            </div>
+          </div>
         </div>
       </article>
     `;
@@ -328,6 +348,12 @@
     const grid = $('#grid');
     const list = applyFilters(RAW);
     grid.innerHTML = list.map(movieCard).join('');
+    // Flip interaction: delegate to grid
+    grid.addEventListener('click', (e)=>{
+      const card = e.target.closest('.flip');
+      if(!card) return;
+      card.classList.toggle('is-flipped');
+    }, { once: true });
     drawCharts(list);
   }
 
