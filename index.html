@@ -144,7 +144,10 @@
 }
 
 /* Flip card + equal height */
-.flip{ cursor:pointer; }
+.flip{
+  cursor: pointer;
+  perspective: 1000px;          /* <-- critical for visible 3D flip */
+}
 .flip .card{
   height:100%;
   border:1px solid var(--border);
@@ -163,6 +166,7 @@
   position:relative; width:100%;
   height: var(--card-h);              /* fixed height for every card */
   transform-style:preserve-3d;
+  will-change: transform;
   transition:transform .6s cubic-bezier(.2,.8,.2,1);
 }
 
@@ -170,7 +174,8 @@
 
 .card-face{
   position:absolute; inset:0;
-  backface-visibility:hidden; -webkit-backface-visibility:hidden;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
   display:flex;                       /* allow vertical layout */
 }
 .card-face.front{ transform:none; }
@@ -474,6 +479,26 @@ GRID.addEventListener('click', (e)=>{
   // toggle current
   card.classList.toggle('is-flipped');
 });
+
+    // Bind once: flip cards (only one open at a time)
+window.addEventListener('DOMContentLoaded', () => {
+  const GRID = document.getElementById('grid');
+  if (!GRID) return;
+
+  GRID.addEventListener('click', (e)=>{
+    const card = e.target.closest('.flip');
+    if (!card || !GRID.contains(card)) return;
+
+    // Close others
+    GRID.querySelectorAll('.flip.is-flipped').forEach(c => {
+      if (c !== card) c.classList.remove('is-flipped');
+    });
+
+    // Toggle current
+    card.classList.toggle('is-flipped');
+  });
+});
+
 
 
   // ======== UI WIRING ========
