@@ -114,7 +114,7 @@
       <div class="profile">
         <img class="avatar" src="assets/profile.jpg" alt="Profile" />
         <div class="title">My <span class="accent">Movies</span></div>
-        <div class="muted" style="font-size:.95rem">Personal watch log</div>
+        <div class="muted" style="font-size:.95rem">Personal watch log · JSON-powered</div>
       </div>
       <nav class="navlinks">
         <a href="#library" aria-current="true">Library</a>
@@ -122,7 +122,8 @@
         <a href="#about">About</a>
       </nav>
       <div style="margin-top:18px; font-size:.92rem" class="muted">
-        Minimal page. Movies I have watched.
+        Data folder: <code>/data/movies.json</code><br>
+        Posters are currently disabled (can be enabled later).
       </div>
     </aside>
 
@@ -151,8 +152,7 @@
             </select>
           </div>
           <button id="btnExport" class="btn">Export CSV</button>
-          <button id="btnEnrich" class="btn primary">Enrich posters</button>
-        </div>
+                  </div>
 
         <div id="grid" class="grid" aria-live="polite"></div>
         <div id="loadError" class="muted" style="margin-top:10px; display:none; color:#ffb4b4">Could not load <code>data/movies.json</code>.</div>
@@ -160,16 +160,16 @@
 
       <!-- Analytics (optional) 
       <section class="section" id="analytics">
-         <h2>Analytics</h2>
+        <h2>Analytics</h2>
         <p class="muted" style="margin-top:-4px">Quick glance at your watch history. (Charts render from your JSON.)</p>
-       /<div class="charts">
-        <canvas id="chartByYear" height="220"></canvas>
+        <div class="charts">
+          <canvas id="chartByYear" height="220"></canvas>
           <canvas id="chartByDirector" height="220"></canvas>
-         </div>
+        </div>
       </section>
       -->
 
-      <!-- About 
+      <!-- About
       <section class="section" id="about">
         <h2>About</h2>
         <p class="muted">This is a minimal, static site that reads <code>/data/movies.json</code> and renders your watch log. You can keep the JSON in a repo and deploy with GitHub Pages. Optional enrichment via the OMDb API will fetch posters and extra info by <code>imdb_id</code> or title+year.</p>
@@ -188,7 +188,7 @@
 
   <script>
   // ======== CONFIG ========
-  const DATA_URL = 'data/movies.json';
+  const DATA_URL = './data/movies.json';
   const OMDB_API_KEY = '';// Optional: put your OMDb key here to enable posters
   const CONCURRENCY = 3;   // poster fetch concurrency
 
@@ -305,23 +305,21 @@
 
   // ======== RENDER ========
   function movieCard(m){
-    const poster = m._poster || 'assets/poster-fallback.svg';
     const directors = m.director.join(', ');
     const tags = (m.tags||[]).map(t=>`<span class="pill">${escapeHtml(t)}</span>`).join(' ');
     return `
       <article class="card" data-year="${m.year||''}">
-        <img class="poster" src="${poster}" alt="Poster for ${escapeHtml(m.title)}" onerror="this.src='assets/poster-fallback.svg'" />
         <div class="card-body">
           <div class="title-row">
             <div>
               <div class="movie-title">${escapeHtml(m.title)}</div>
               <div class="meta">${m.year? m.year : ''} · ${escapeHtml(directors)}</div>
             </div>
-            ${m.rating? `<span class="pill primary">★ ${m.rating.toFixed(1)}</span>` : ''}
+            ${m.rating? `<span class=\"pill primary\">★ ${m.rating.toFixed(1)}</span>` : ''}
           </div>
           <div class="meta">Watched: ${escapeHtml(fmtDate(m.watched_date))}${m.location? ` · ${escapeHtml(m.location)}`:''}</div>
-          ${m.notes? `<div class="meta">Notes: ${escapeHtml(m.notes)}</div>`:''}
-          ${m.tags?.length? `<div class="tags">${tags}</div>`:''}
+          ${m.notes? `<div class=\"meta\">Notes: ${escapeHtml(m.notes)}</div>`:''}
+          ${m.tags?.length? `<div class=\"tags\">${tags}</div>`:''}
         </div>
       </article>
     `;
@@ -351,7 +349,7 @@
     $('#yearMin').addEventListener('change', e=>{ state.yearMin = Number(e.target.value)||null; render(); });
     $('#yearMax').addEventListener('change', e=>{ state.yearMax = Number(e.target.value)||null; render(); });
     $('#btnExport').addEventListener('click', exportCSV);
-    $('#btnEnrich').addEventListener('click', ()=> enrichAll(applyFilters(RAW)) );
+    
   }
 
   function exportCSV(){
