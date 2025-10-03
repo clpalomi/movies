@@ -10,7 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <!-- Chart.js (optional analytics section) -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/distt/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
 
 <style>
   /* ===== Accessible palette (light & dark) ===== */
@@ -441,9 +441,15 @@
     drawCharts(list);
   }
 
-    // Global delegated flip handler: only one open at a time
-const GRID = document.getElementById('grid');
-GRID.addEventListener('click', (e)=>{
+  document.getElementById('grid').addEventListener('click', (e)=>{
+  const card = e.target.closest('.flip');
+  if (!card) return;
+  document.querySelectorAll('#grid .flip.is-flipped').forEach(c=>{
+    if(c!==card) c.classList.remove('is-flipped');
+  });
+  card.classList.toggle('is-flipped');
+  });
+
   const card = e.target.closest('.flip');
   if (!card) return;
 
@@ -522,14 +528,6 @@ window.addEventListener('DOMContentLoaded', () => {
     URL.revokeObjectURL(a.href);
   }
 
-  // Global delegated flip handler (bind once)
-document.getElementById('grid').addEventListener('click', (e)=>{
-  const card = e.target.closest('.flip');
-  if (!card) return;
-  card.classList.toggle('is-flipped');
-});
-
-
   // ======== ANALYTICS ========
 let chartYear, chartDirector;
 function drawCharts(list){
@@ -568,10 +566,13 @@ function drawCharts(list){
     try{
       RAW = await loadData();
       const {min,max} = computeYearBounds(RAW);
-      populateYearSelects(min, max);
+      const now = new Date().getFullYear();
+      const safeMin = Number.isFinite(min) ? min : 1900;
+      const safeMax = Number.isFinite(max) ? max : now;
+      populateYearSelects(safeMin, safeMax);
       bindUI();
       render();
-    }catch(e){ console.error(e); $('#loadError').style.display='block'; }
+    }catch(e){ console.error(e); }
   })();
   </script>
 </body>
