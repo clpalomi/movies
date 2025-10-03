@@ -10,28 +10,62 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <!-- Chart.js (optional analytics section) -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/distt/chart.umd.min.js"></script>
 
 <style>
   /* ===== Accessible palette (light & dark) ===== */
+  :root{
+    --primary:#1A56DB;           /* accessible blue */
+    --primary-600:#1548B5;
+
+    --bg:#F2F4F7;                /* page background */
+    --surface:#FFFFFF;           /* structural surfaces (sidebar, inputs) */
+    --card:#F7FAFF;              /* ⚠️ slightly tinted card (not pure white) */
+
+    --text:#0B1220;
+    --muted:#475467;
+
+    --border:#D0D5DD;            /* standard divider */
+    --border-strong:#B8C0CC;     /* for hovered cards */
+
+    --shadow:0 8px 22px rgba(16,24,40,.08);
+    --sidebar-w:300px;
+    /* added vars */
+    --card-h: 320px;          /* uniform card height (bigger box) */
+    --grid-gap: 10px;         /* space between cards */
+    --poster-bg: color-mix(in srgb, var(--primary) 6%, #fff);
+  }
   /* Dark theme only */
 :root{
   --primary:#8FB2FF;
   --primary-600:#BFD1FF;
 
+  html[data-theme="dark"]{
+    --primary:#8FB2FF;
+    --primary-600:#BFD1FF;
   --bg:#0B1220;          /* page background */
   --surface:#0F172A;     /* sidebar, inputs */
   --card:#0F1B35;        /* card surface */
 
+    --bg:#0B1220;
+    --surface:#0F172A;
+    --card:#0F1B35;              /* cool, slightly tinted dark card */
   --text:#E7ECF4;
   --muted:#A4AFBD;
 
+    --text:#E7ECF4;
+    --muted:#A4AFBD;
   --border:#1F2937;
   --border-strong:#2B3543;
 
+    --border:#1F2937;
+    --border-strong:#2B3543;
   --shadow:0 12px 28px rgba(0,0,0,.45);
   --sidebar-w:300px;
 
+    --shadow:0 12px 28px rgba(0,0,0,.45);
+  }
   /* card/grid sizing if you added them earlier */
   --card-h: 320px;
   --grid-gap: 10px;
@@ -204,18 +238,26 @@
   border-color: var(--border-strong);
   box-shadow: 0 10px 24px rgba(16,24,40,.12);
 }
-  
+
   /* ===== Charts layout (if enabled) ===== */
   .charts{ display:grid; gap:16px; grid-template-columns:1fr; }
   @media (min-width: 900px){ .charts{ grid-template-columns:1fr 1fr; } }
+
+  /* ===== Theme toggle ===== */
+  .toggle{
+    position:fixed; right:16px; bottom:16px; z-index:1000;
+    border:1px solid var(--border); background: var(--surface); color: var(--text);
+    border-radius:999px; padding:10px 14px; box-shadow:var(--shadow); cursor:pointer;
+  }
+
   
   /* ===== Focus ===== */
   :focus-visible{ outline:2px solid var(--primary); outline-offset:2px; border-radius:8px; }
 </style>
 
 
-  
-  
+
+
 </head>
 <body>
   <div class="layout">
@@ -276,6 +318,8 @@
 
     </main>
   </div>
+
+  <button class="toggle" id="themeToggle" aria-label="Toggle theme">🌗 Theme</button>
 
   <script>
   // ======== CONFIG ========
@@ -441,15 +485,9 @@
     drawCharts(list);
   }
 
-  document.getElementById('grid').addEventListener('click', (e)=>{
-  const card = e.target.closest('.flip');
-  if (!card) return;
-  document.querySelectorAll('#grid .flip.is-flipped').forEach(c=>{
-    if(c!==card) c.classList.remove('is-flipped');
-  });
-  card.classList.toggle('is-flipped');
-  });
-
+    // Global delegated flip handler: only one open at a time
+const GRID = document.getElementById('grid');
+GRID.addEventListener('click', (e)=>{
   const card = e.target.closest('.flip');
   if (!card) return;
 
@@ -500,7 +538,7 @@ window.addEventListener('DOMContentLoaded', () => {
     $('#yearMin').addEventListener('change', e=>{ state.yearMin = Number(e.target.value)||null; render(); });
     $('#yearMax').addEventListener('change', e=>{ state.yearMax = Number(e.target.value)||null; render(); });
     $('#btnExport').addEventListener('click', exportCSV);
-    
+
   }
 
   function exportCSV(){
@@ -527,6 +565,14 @@ window.addEventListener('DOMContentLoaded', () => {
     a.click();
     URL.revokeObjectURL(a.href);
   }
+
+  // Global delegated flip handler (bind once)
+document.getElementById('grid').addEventListener('click', (e)=>{
+  const card = e.target.closest('.flip');
+  if (!card) return;
+  card.classList.toggle('is-flipped');
+});
+
 
   // ======== ANALYTICS ========
 let chartYear, chartDirector;
@@ -560,19 +606,27 @@ function drawCharts(list){
     options:{ indexAxis:'y', plugins:{ legend:{ display:false } }, scales:{ x:{ beginAtZero:true } } }
   });
 }
+    
+
+  // ======== THEME TOGGLE ========
+  (function(){
+    const key='theme';
+    const btn=$('#themeToggle');
+    const root=document.documentElement;
+    const apply=t=>{ root.setAttribute('data-theme', t); document.documentElement.style.colorScheme=(t==='dark'?'dark':'light'); };
+    const saved=localStorage.getItem(key); if(saved) apply(saved);
+    btn.addEventListener('click', ()=>{ const cur=root.getAttribute('data-theme')|| (matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'); const next=cur==='dark'?'light':'dark'; apply(next); localStorage.setItem(key,next); });
+  })();
 
   // ======== BOOT ========
   (async function init(){
     try{
       RAW = await loadData();
       const {min,max} = computeYearBounds(RAW);
-      const now = new Date().getFullYear();
-      const safeMin = Number.isFinite(min) ? min : 1900;
-      const safeMax = Number.isFinite(max) ? max : now;
-      populateYearSelects(safeMin, safeMax);
+      populateYearSelects(min, max);
       bindUI();
       render();
-    }catch(e){ console.error(e); }
+    }catch(e){ console.error(e); $('#loadError').style.display='block'; }
   })();
   </script>
 </body>
