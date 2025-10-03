@@ -10,48 +10,33 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <!-- Chart.js (optional analytics section) -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/distt/chart.umd.min.js"></script>
 
 <style>
   /* ===== Accessible palette (light & dark) ===== */
-  :root{
-    --primary:#1A56DB;           /* accessible blue */
-    --primary-600:#1548B5;
+  /* Dark theme only */
+:root{
+  --primary:#8FB2FF;
+  --primary-600:#BFD1FF;
 
-    --bg:#F2F4F7;                /* page background */
-    --surface:#FFFFFF;           /* structural surfaces (sidebar, inputs) */
-    --card:#F7FAFF;              /* ⚠️ slightly tinted card (not pure white) */
+  --bg:#0B1220;          /* page background */
+  --surface:#0F172A;     /* sidebar, inputs */
+  --card:#0F1B35;        /* card surface */
 
-    --text:#0B1220;
-    --muted:#475467;
+  --text:#E7ECF4;
+  --muted:#A4AFBD;
 
-    --border:#D0D5DD;            /* standard divider */
-    --border-strong:#B8C0CC;     /* for hovered cards */
+  --border:#1F2937;
+  --border-strong:#2B3543;
 
-    --shadow:0 8px 22px rgba(16,24,40,.08);
-    --sidebar-w:300px;
-    /* added vars */
-    --card-h: 320px;          /* uniform card height (bigger box) */
-    --grid-gap: 10px;         /* space between cards */
-    --poster-bg: color-mix(in srgb, var(--primary) 6%, #fff);
-  }
+  --shadow:0 12px 28px rgba(0,0,0,.45);
+  --sidebar-w:300px;
 
-  html[data-theme="dark"]{
-    --primary:#8FB2FF;
-    --primary-600:#BFD1FF;
-
-    --bg:#0B1220;
-    --surface:#0F172A;
-    --card:#0F1B35;              /* cool, slightly tinted dark card */
-
-    --text:#E7ECF4;
-    --muted:#A4AFBD;
-
-    --border:#1F2937;
-    --border-strong:#2B3543;
-
-    --shadow:0 12px 28px rgba(0,0,0,.45);
-  }
+  /* card/grid sizing if you added them earlier */
+  --card-h: 320px;
+  --grid-gap: 10px;
+  --poster-bg: color-mix(in srgb, var(--primary) 9%, #0B1220);
+}
 
   *{ box-sizing:border-box; }
   body{
@@ -223,14 +208,7 @@
   /* ===== Charts layout (if enabled) ===== */
   .charts{ display:grid; gap:16px; grid-template-columns:1fr; }
   @media (min-width: 900px){ .charts{ grid-template-columns:1fr 1fr; } }
-
-  /* ===== Theme toggle ===== */
-  .toggle{
-    position:fixed; right:16px; bottom:16px; z-index:1000;
-    border:1px solid var(--border); background: var(--surface); color: var(--text);
-    border-radius:999px; padding:10px 14px; box-shadow:var(--shadow); cursor:pointer;
-  }
-
+  
   /* ===== Focus ===== */
   :focus-visible{ outline:2px solid var(--primary); outline-offset:2px; border-radius:8px; }
 </style>
@@ -298,8 +276,6 @@
 
     </main>
   </div>
-
-  <button class="toggle" id="themeToggle" aria-label="Toggle theme">🌗 Theme</button>
 
   <script>
   // ======== CONFIG ========
@@ -586,17 +562,6 @@ function drawCharts(list){
     options:{ indexAxis:'y', plugins:{ legend:{ display:false } }, scales:{ x:{ beginAtZero:true } } }
   });
 }
-    
-
-  // ======== THEME TOGGLE ========
-  (function(){
-    const key='theme';
-    const btn=$('#themeToggle');
-    const root=document.documentElement;
-    const apply=t=>{ root.setAttribute('data-theme', t); document.documentElement.style.colorScheme=(t==='dark'?'dark':'light'); };
-    const saved=localStorage.getItem(key); if(saved) apply(saved);
-    btn.addEventListener('click', ()=>{ const cur=root.getAttribute('data-theme')|| (matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'); const next=cur==='dark'?'light':'dark'; apply(next); localStorage.setItem(key,next); });
-  })();
 
   // ======== BOOT ========
   (async function init(){
