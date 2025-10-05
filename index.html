@@ -303,6 +303,10 @@
                   </div>
 
         <div id="grid" class="grid" aria-live="polite"></div>
+        <div id="moreWrap" style="text-align:center; margin-top:12px;">
+          <button id="btnMore" class="btn">Show more</button>
+        </div>
+
       </section>
 
       <!-- Analytics (optional) 
@@ -411,7 +415,7 @@
   }
 
   // ======== STATE & FILTERING ========
-  const state = { q:'', yearMin:null, yearMax:null, sort:'watched_desc' };
+  const state = { q:'', yearMin:null, yearMax:null, sort:'watched_desc', visible: 10 };
 
   function computeYearBounds(list){
     const years = list.map(m=>m.year).filter(Boolean);
@@ -477,13 +481,25 @@
   `;
 }
 
-  function render(){
-    const grid = $('#grid');
-    const list = applyFilters(RAW);
-    grid.innerHTML = list.map(movieCard).join('');
-    // Flip interaction: delegate to grid
-    drawCharts(list);
-  }
+function render(){
+  const grid = $('#grid');
+  const list = applyFilters(RAW);
+
+  const shown = list.slice(0, state.visible);
+  grid.innerHTML = shown.map(movieCard).join('');
+
+  const moreWrap = $('#moreWrap');
+  const btnMore = $('#btnMore');
+if (btnMore){
+  btnMore.addEventListener('click', ()=>{
+    state.visible += 10;   // reveal 10 more each time
+    render();
+  });
+}
+
+  drawCharts(list);
+}
+
 
     // Global delegated flip handler: only one open at a time
 const GRID = document.getElementById('grid');
@@ -533,12 +549,10 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   function bindUI(){
-    $('#q').addEventListener('input', e=>{ state.q = e.target.value; render(); });
-    $('#sort').addEventListener('change', e=>{ state.sort = e.target.value; render(); });
-    $('#yearMin').addEventListener('change', e=>{ state.yearMin = Number(e.target.value)||null; render(); });
-    $('#yearMax').addEventListener('change', e=>{ state.yearMax = Number(e.target.value)||null; render(); });
-    $('#btnExport').addEventListener('click', exportCSV);
-
+    $('#q').addEventListener('input', e=>{ state.q = e.target.value; state.visible = 10; render(); });
+    $('#sort').addEventListener('change', e=>{ state.sort = e.target.value; state.visible = 10; render(); });
+    $('#yearMin').addEventListener('change', e=>{ state.yearMin = Number(e.target.value)||null; state.visible = 10; render(); });
+    $('#yearMax').addEventListener('change', e=>{ state.yearMax = Number(e.target.value)||null; state.visible = 10; render(); });
   }
 
   function exportCSV(){
