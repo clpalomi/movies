@@ -11,247 +11,114 @@
 
   <!-- Chart.js (optional analytics section) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/distt/chart.umd.min.js"></script>
 
 <style>
-  /* ===== Accessible palette (light & dark) ===== */
   :root{
-    --primary:#1A56DB;           /* accessible blue */
+    --primary:#1A56DB;
     --primary-600:#1548B5;
-
-    --bg:#F2F4F7;                /* page background */
-    --surface:#FFFFFF;           /* structural surfaces (sidebar, inputs) */
-    --card:#F7FAFF;              /* ⚠️ slightly tinted card (not pure white) */
-
+    --bg:#F2F4F7;
+    --surface:#FFFFFF;
+    --card:#F7FAFF;
     --text:#0B1220;
     --muted:#475467;
-
-    --border:#D0D5DD;            /* standard divider */
-    --border-strong:#B8C0CC;     /* for hovered cards */
-
+    --border:#D0D5DD;
+    --border-strong:#B8C0CC;
     --shadow:0 8px 22px rgba(16,24,40,.08);
     --sidebar-w:300px;
-    /* added vars */
-    --card-h: 320px;          /* uniform card height (bigger box) */
-    --grid-gap: 10px;         /* space between cards */
-    --poster-bg: color-mix(in srgb, var(--primary) 6%, #fff);
+    --card-h:360px;
+    --grid-gap:14px;
+    --poster-bg:color-mix(in srgb, var(--primary) 6%, #fff);
   }
-  /* Dark theme only */
-:root{
-  --primary:#8FB2FF;
-  --primary-600:#BFD1FF;
 
   html[data-theme="dark"]{
     --primary:#8FB2FF;
     --primary-600:#BFD1FF;
-  --bg:#0B1220;          /* page background */
-  --surface:#0F172A;     /* sidebar, inputs */
-  --card:#0F1B35;        /* card surface */
-
     --bg:#0B1220;
     --surface:#0F172A;
-    --card:#0F1B35;              /* cool, slightly tinted dark card */
-  --text:#E7ECF4;
-  --muted:#A4AFBD;
-
+    --card:#0F1B35;
     --text:#E7ECF4;
     --muted:#A4AFBD;
-  --border:#1F2937;
-  --border-strong:#2B3543;
-
     --border:#1F2937;
     --border-strong:#2B3543;
-  --shadow:0 12px 28px rgba(0,0,0,.45);
-  --sidebar-w:300px;
-
     --shadow:0 12px 28px rgba(0,0,0,.45);
+    --poster-bg:color-mix(in srgb, var(--primary) 9%, #0B1220);
   }
-  /* card/grid sizing if you added them earlier */
-  --card-h: 320px;
-  --grid-gap: 10px;
-  --poster-bg: color-mix(in srgb, var(--primary) 9%, #0B1220);
-}
 
   *{ box-sizing:border-box; }
   body{
     margin:0;
-    background: var(--bg);
-    color: var(--text);
-    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    font-family:Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
     line-height:1.6;
     scroll-behavior:smooth;
   }
 
-  /* ===== Layout ===== */
   .layout{ display:block; min-height:100vh; padding-bottom:40px; }
-
-  .sidebar{
-    background: var(--surface);
-    border-right:1px solid var(--border);
-    padding:24px 20px; z-index:10;
-  }
+  .sidebar{ background:var(--surface); border-right:1px solid var(--border); padding:24px 20px; z-index:10; }
   @media (min-width: 992px){
-    .layout{ padding-left: var(--sidebar-w); }
+    .layout{ padding-left:var(--sidebar-w); }
     .sidebar{ position:fixed; top:0; left:0; bottom:0; width:var(--sidebar-w); overflow:auto; }
   }
 
   .profile{ display:flex; flex-direction:column; align-items:center; text-align:center; gap:12px; }
-  .avatar{
-    width:180px; height:120px; border-radius:16px;
-    border:3px solid color-mix(in srgb, var(--primary) 30%, transparent);
-    box-shadow:var(--shadow); object-fit:cover; object-position:center;
-    background: var(--card);
-  }
+  .avatar{ width:180px; height:120px; border-radius:16px; border:3px solid color-mix(in srgb, var(--primary) 30%, transparent); box-shadow:var(--shadow); object-fit:cover; object-position:center; background:var(--card); }
   .title{ font-weight:800; font-size:26px; letter-spacing:.2px; }
   .accent{ color:var(--primary); }
 
   .navlinks{ margin-top:18px; display:flex; flex-direction:column; gap:6px; }
-  .navlinks a{
-    display:flex; align-items:center; gap:10px;
-    padding:10px 12px; border-radius:12px; color:var(--text);
-    text-decoration:none; border:1px solid transparent;
-  }
-  .navlinks a:hover{
-    background: color-mix(in srgb, var(--primary) 8%, transparent);
-    border-color: color-mix(in srgb, var(--primary) 20%, var(--border));
-    color: var(--primary);
-  }
-  .navlinks a[aria-current="true"]{
-    background: color-mix(in srgb, var(--primary) 10%, transparent);
-    border-color: color-mix(in srgb, var(--primary) 28%, var(--border));
-    color: var(--primary);
-  }
-
+  .navlinks a{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; color:var(--text); text-decoration:none; border:1px solid transparent; }
+  .navlinks a:hover,
+  .navlinks a[aria-current="true"]{ background:color-mix(in srgb, var(--primary) 10%, transparent); border-color:color-mix(in srgb, var(--primary) 28%, var(--border)); color:var(--primary); }
+  
   .content{ padding:24px; }
-
-  /* ===== Sections (no card chrome) ===== */
-  .section{
-    background:transparent;
-    border:none;
-    box-shadow:none;
-    padding:18px 0 28px;
-    max-width:1100px;
-    margin:0 auto 12px;
-  }
-  .section + .section{
-    border-top:1px solid var(--border);
-    padding-top:28px;
-  }
+  .section{ background:transparent; border:none; box-shadow:none; padding:18px 0 28px; max-width:1100px; margin:0 auto 12px; }
+  .section + .section{ border-top:1px solid var(--border); padding-top:28px; }
   .section h2{ margin:0 0 10px; font-weight:800; }
   .muted{ color:var(--muted); }
 
-  /* ===== Controls ===== */
   .toolbar{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:12px 0 16px; }
   .toolbar .field{ display:flex; align-items:center; gap:8px; }
-  .input, select{
-    border:1px solid var(--border);
-    background: var(--surface);
-    color:var(--text);
-    border-radius:10px; padding:10px 12px; outline:none; min-height:40px;
-  }
+  .input, select, textarea{ border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:10px; padding:10px 12px; outline:none; min-height:40px; }
   .input{ flex:1 1 320px; min-width:240px; }
-  .input::placeholder{ color: color-mix(in srgb, var(--muted) 70%, transparent); }
-  .btn{ border:1px solid var(--border); background: var(--surface); color:var(--text); border-radius:10px; padding:10px 12px; cursor:pointer; }
-  .btn.primary{ border-color: color-mix(in srgb, var(--primary) 25%, var(--border)); background: color-mix(in srgb, var(--primary) 10%, transparent); color: var(--primary); }
+  .input::placeholder, textarea::placeholder{ color:color-mix(in srgb, var(--muted) 70%, transparent); }
+  .btn{ border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:10px; padding:10px 12px; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+  .btn.primary{ border-color:color-mix(in srgb, var(--primary) 25%, var(--border)); background:color-mix(in srgb, var(--primary) 10%, transparent); color:var(--primary); }
+  .btn:hover{ border-color:var(--border-strong); }
 
-  /* ===== Movie grid & cards ===== */
-.grid{
-  display:grid;
-  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-  gap: var(--grid-gap);               /* tighter spacing */
-  align-items:stretch;
-}
-
-/* Flip card + equal height */
-.flip{
-  cursor: pointer;
-  perspective: 1000px;          /* <-- critical for visible 3D flip */
-}
-.flip .card{
-  height:100%;
-  border:1px solid var(--border);
-  background: var(--card);
-  box-shadow: var(--shadow);
-  border-radius:14px;
-  overflow:hidden;
-}
-  .flip:hover .card{
-    border-color: var(--border-strong);
-    box-shadow: 0 10px 24px rgba(16,24,40,.12);
-  }
-
-  /* Keep card height stable so flipping doesn't cause layout jumps */
-.card-inner{
-  position:relative; width:100%;
-  height: var(--card-h);              /* fixed height for every card */
-  transform-style:preserve-3d;
-  will-change: transform;
-  transition:transform .6s cubic-bezier(.2,.8,.2,1);
-}
-
-.flip.is-flipped .card-inner{ transform: rotateY(180deg); }
-
-.card-face{
-  position:absolute; inset:0;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-  display:flex;                       /* allow vertical layout */
-}
-.card-face.front{ transform:none; }
-.card-face.back{ transform: rotateY(180deg); }
-
-  /* Front/back bodies */
-.card-face.front .card-body{
-  padding:14px;
-  display:flex; flex-direction:column; gap:8px;
-  width:100%;
-}
-.card-face.back .card-body{
-  padding:12px;
-  display:flex; flex-direction:column; gap:6px;
-  width:100%;
-  font-size: 0.9rem;                  /* smaller font to fit */
-  line-height: 1.5;
-  overflow:auto;                      /* scroll if content exceeds fixed height */
-}
-
-  .card-body{ padding:16px; display:grid; gap:6px; }
-/* Title/meta */
-.title-row{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
-.movie-title{ font-weight:800; line-height:1.25; }
-  .pill{ font-size:.8rem; padding:3px 8px; border-radius:999px; border:1px solid var(--border); color:var(--muted); background: color-mix(in srgb, var(--card) 70%, #ffffff); }
-  .pill.primary{ border-color: color-mix(in srgb, var(--primary) 25%, var(--border)); color: var(--primary); background: color-mix(in srgb, var(--primary) 10%, transparent); }
-  .meta{ color: var(--muted); font-size:.95rem; }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:var(--grid-gap); align-items:stretch; }
+  .flip{ cursor:pointer; perspective:1000px; }
+  .flip .card{ height:100%; border:1px solid var(--border); background:var(--card); box-shadow:var(--shadow); border-radius:14px; overflow:hidden; }
+  .flip:hover .card{ border-color:var(--border-strong); box-shadow:0 10px 24px rgba(16,24,40,.12); }
+  .card-inner{ position:relative; width:100%; height:var(--card-h); transform-style:preserve-3d; will-change:transform; transition:transform .6s cubic-bezier(.2,.8,.2,1); }
+  .flip.is-flipped .card-inner{ transform:rotateY(180deg); }
+  .card-face{ position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; display:flex; }
+  .card-face.front{ transform:none; }
+  .card-face.back{ transform:rotateY(180deg); }
+  .card-body{ padding:14px; display:flex; flex-direction:column; gap:9px; width:100%; }
+  .card-face.back .card-body{ font-size:.92rem; line-height:1.5; overflow:auto; }
+  .title-row{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
+  .movie-title{ font-weight:800; line-height:1.25; color:var(--text); }
+  a.movie-title{ color:var(--primary); text-decoration:none; }
+  a.movie-title:hover{ text-decoration:underline; }
+  .pill{ font-size:.8rem; padding:3px 8px; border-radius:999px; border:1px solid var(--border); color:var(--muted); background:color-mix(in srgb, var(--card) 70%, #ffffff); }
+  .pill.primary{ border-color:color-mix(in srgb, var(--primary) 25%, var(--border)); color:var(--primary); background:color-mix(in srgb, var(--primary) 10%, transparent); }
+  .meta{ color:var(--muted); font-size:.95rem; }
   .tags{ display:flex; flex-wrap:wrap; gap:6px; }
+  .poster{ width:100%; aspect-ratio:16 / 9; border-radius:10px; object-fit:cover; background:var(--poster-bg); border:1px solid var(--border); }
+  .poster-slot{ width:100%; aspect-ratio:16 / 9; border-radius:10px; background:var(--poster-bg); border:1px dashed var(--border); display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:.9rem; text-align:center; padding:12px; }
 
-/* Reserve space for future poster (fills width, 16:9) */
-.poster-slot{
-  width:100%;
-  aspect-ratio: 16 / 9;
-  border-radius:10px;
-  background: var(--poster-bg);
-  border:1px dashed var(--border);
-}
-
-/* Hover affordance */
-.flip:hover .card{
-  border-color: var(--border-strong);
-  box-shadow: 0 10px 24px rgba(16,24,40,.12);
-}
-
-  /* ===== Charts layout (if enabled) ===== */
+  .upload-panel{ background:var(--card); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow); padding:16px; display:grid; gap:12px; }
+  .upload-grid{ display:grid; gap:10px; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); }
+  .upload-grid label{ display:grid; gap:6px; font-weight:600; }
+  .checkbox-row{ display:flex; align-items:center; gap:8px; font-weight:600; }
+  .code-output{ min-height:180px; width:100%; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.9rem; resize:vertical; }
+  .diagnosis-list{ margin:10px 0 0; padding-left:20px; }
+  
   .charts{ display:grid; gap:16px; grid-template-columns:1fr; }
   @media (min-width: 900px){ .charts{ grid-template-columns:1fr 1fr; } }
-
-  /* ===== Theme toggle ===== */
-  .toggle{
-    position:fixed; right:16px; bottom:16px; z-index:1000;
-    border:1px solid var(--border); background: var(--surface); color: var(--text);
-    border-radius:999px; padding:10px 14px; box-shadow:var(--shadow); cursor:pointer;
-  }
-
-  
-  /* ===== Focus ===== */
+  .toggle{ position:fixed; right:16px; bottom:16px; z-index:1000; border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:999px; padding:10px 14px; box-shadow:var(--shadow); cursor:pointer; }
+  #loadError{ display:none; color:#B42318; background:#FEF3F2; border:1px solid #FDA29B; border-radius:10px; padding:10px 12px; }
   :focus-visible{ outline:2px solid var(--primary); outline-offset:2px; border-radius:8px; }
 </style>
 
@@ -270,6 +137,7 @@
       </div>
       <nav class="navlinks">
         <a href="#library" aria-current="true">Library</a>
+        <a href="#add-movie">Add movie</a>
         <a href="#analytics">Analytics</a>
         <a href="https://clpalomi.github.io/" target="_blank" rel="noopener">About me</a>
       </nav>
@@ -300,8 +168,8 @@
             </select>
           </div>
           <button id="btnExport" class="btn">Export CSV</button>
-                  </div>
-
+        </div>
+        
         <div id="grid" class="grid" aria-live="polite"></div>
         <div id="moreWrap" style="text-align:center; margin-top:12px;">
           <button id="btnMore" class="btn">Show more</button>
@@ -309,7 +177,50 @@
 
       </section>
 
-      <!-- Analytics (optional) 
+      <section class="section" id="add-movie">
+        <h2>Add a movie + image</h2>
+        <p class="muted" style="margin-top:-4px">Use this helper to generate a ready-to-paste JSON entry. Save the image file in <code>posters/</code> using the suggested filename, then add the JSON object to <code>data/movies.json</code>.</p>
+        <form id="movieHelper" class="upload-panel">
+          <div class="upload-grid">
+            <label>Title
+              <input id="helperTitle" class="input" type="text" placeholder="Past Lives" />
+            </label>
+            <label>Year
+              <input id="helperYear" class="input" type="number" min="1888" max="2100" placeholder="2023" />
+            </label>
+            <label>Director
+              <input id="helperDirector" class="input" type="text" placeholder="Celine Song" />
+            </label>
+            <label>Watched date
+              <input id="helperWatched" class="input" type="date" />
+            </label>
+            <label>Movie image
+              <input id="helperPoster" class="input" type="file" accept="image/*" />
+            </label>
+            <label>Rating
+              <input id="helperRating" class="input" type="number" min="0" max="10" step="0.1" placeholder="8.7" />
+            </label>
+          </div>
+          <label>Notes
+            <textarea id="helperNotes" class="input" rows="3" placeholder="A short watch-log note."></textarea>
+          </label>
+          <label class="checkbox-row">
+            <input id="helperBlogEnabled" type="checkbox" />
+            Create an optional minimalist blog-entry link for this movie
+          </label>
+          <label>Optional blog text
+            <textarea id="helperBlogBody" class="input" rows="4" placeholder="Leave blank unless you want a blog entry."></textarea>
+          </label>
+          <div class="toolbar" style="margin:0">
+            <button id="copySnippet" class="btn primary" type="button">Copy JSON snippet</button>
+            <span id="helperPosterName" class="muted"></span>
+          </div>
+          <textarea id="jsonSnippet" class="code-output" readonly aria-label="Generated JSON snippet"></textarea>
+        </form>
+      </section>
+
+      <div id="loadError" role="alert">Could not load the movie data. If you opened the file directly, run a local web server so the browser can fetch <code>data/movies.json</code>.</div>
+
       <section class="section" id="analytics">
         <h2>Analytics</h2>
         <p class="muted" style="margin-top:-4px">Quick glance at your watch history. (Charts render from your JSON.)</p>
@@ -318,7 +229,6 @@
           <canvas id="chartByDirector" height="220"></canvas>
         </div>
       </section>
-      -->
 
     </main>
   </div>
@@ -326,321 +236,333 @@
   <button class="toggle" id="themeToggle" aria-label="Toggle theme">🌗 Theme</button>
 
   <script>
-  // ======== CONFIG ========
   const DATA_URL = 'data/movies.json';
-  const OMDB_API_KEY = '';// Optional: put your OMDb key here to enable posters
-  const CONCURRENCY = 3;   // poster fetch concurrency
+  const state = { q:'', yearMin:null, yearMax:null, sort:'watched_desc', visible:10 };
+  let RAW = [];
+  let chartYear;
+  let chartDirector;
 
-  // JSON schema (documentation)
+  const $ = (sel, root=document) => root.querySelector(sel);
+
   const MOVIE_SCHEMA = {
     title: 'string',
     year: 'number',
     director: 'string | string[]',
-    imdb_id: 'string | null', // e.g., tt0110912
+    imdb_id: 'string | null',
+    poster: 'string | null; optional local path such as posters/past-lives-2023.jpg',
     genres: 'string[]',
     cast: 'string[]',
     runtime_min: 'number | null',
-    // Personal metadata
     watched_date: 'YYYY-MM-DD',
     location: 'string',
-    rating: 'number | null', // 1..10
+    rating: 'number | null',
     tags: 'string[]',
-    notes: 'string'
+    notes: 'string',
+    blog: '{ enabled: boolean, slug: string, title?: string, body?: string } | null; optional'
   };
 
-  // ======== UTILITIES ========
-  const $ = (sel, root=document) => root.querySelector(sel);
-  const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+  function escapeHtml(value=''){
+  return String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  }
+  function slugify(value=''){
+    return String(value).toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'movie';
+  }
 
-  function escapeHtml(s=''){ return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c])); }
-  function fmtDate(iso){ if(!iso) return ''; try{ const d=new Date(iso); return d.toLocaleDateString(); }catch(e){ return iso; } }
-  function uniq(arr){ return Array.from(new Set(arr)); }
+  function normalizeList(value){
+    if(Array.isArray(value)) return value;
+    if(!value) return [];
+    return String(value).split(',').map(item => item.trim()).filter(Boolean);
+  }
+    
+function normalizeMovie(movie){
+    const title = movie.title || 'Untitled movie';
+    const year = Number(movie.year) || null;
+    const slug = movie.slug || slugify(`${title} ${year || ''}`);
+    const blog = movie.blog && movie.blog.enabled ? {
+      enabled: true,
+      slug: movie.blog.slug || slug,
+      title: movie.blog.title || title,
+      body: movie.blog.body || '',
+    } : null;
+
+    return {
+      ...movie,
+      title,
+      year,
+      slug,
+      director: normalizeList(movie.director),
+      genres: normalizeList(movie.genres),
+      cast: normalizeList(movie.cast),
+      tags: normalizeList(movie.tags).map(tag => tag.toLowerCase()),
+      rating: movie.rating == null || movie.rating === '' ? null : Number(movie.rating),
+      poster: movie.poster || '',
+      blog,
+    };
+  }
+
+  function fmtDate(iso){
+    if(!iso) return 'Not logged yet';
+    const date = new Date(`${iso}T00:00:00`);
+    return Number.isNaN(date.getTime()) ? iso : date.toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' });
+  }
+
   function toCSV(rows){
     if(!rows.length) return '';
     const headers = Object.keys(rows[0]);
-    const esc = v => '"'+String(v??'').replace(/"/g,'""')+'"';
-    return [headers.map(esc).join(','), ...rows.map(r=>headers.map(h=>esc(r[h])).join(','))].join('\n');
+    const quote = value => `"${String(value ?? '').replace(/"/g,'""')}"`;
+    return [headers.map(quote).join(','), ...rows.map(row => headers.map(header => quote(row[header])).join(','))].join('\n');
   }
-
-  // ======== DATA LOADING ========
-  let RAW = [];// original array
-  let ENRICH_CACHE = {};// imdb_id -> {Poster, Plot, Rated, ...}
 
   async function loadData(){
-    const res = await fetch(DATA_URL, {cache:'no-store'});
-    if(!res.ok) throw new Error('Failed to load movies.json');
-    const data = await res.json();
-    // Normalize director -> array
-    return data.map(m=>({
-      ...m,
-      director: Array.isArray(m.director) ? m.director : (m.director? [m.director] : []),
-      genres: Array.isArray(m.genres) ? m.genres : (m.genres? String(m.genres).split(',').map(s=>s.trim()) : []),
-      cast: Array.isArray(m.cast) ? m.cast : (m.cast? String(m.cast).split(',').map(s=>s.trim()) : []),
-      tags: Array.isArray(m.tags) ? m.tags : (m.tags? String(m.tags).split(',').map(s=>s.trim().toLowerCase()) : []),
-      year: Number(m.year)||null,
-      rating: (m.rating==null? null : Number(m.rating)),
-    }));
+    const response = await fetch(DATA_URL, { cache:'no-store' });
+    if(!response.ok) throw new Error('Failed to load movies.json');
+    const data = await response.json();
+    return data.map(normalizeMovie);
   }
-
-  async function enrichPoster(movie){
-    if(!OMDB_API_KEY) return null;
-    try{
-      const q = movie.imdb_id ? `i=${encodeURIComponent(movie.imdb_id)}` : `t=${encodeURIComponent(movie.title)}&y=${movie.year||''}`;
-      const url = `https://www.omdbapi.com/?apikey=${OMDB_API_KEY}&${q}`;
-      const res = await fetch(url);
-      const j = await res.json();
-      if(j && j.Response!=='False'){
-        return { Poster: j.Poster && j.Poster!=='N/A' ? j.Poster : '', Rated: j.Rated||'', Plot: j.Plot||'', Runtime: j.Runtime||'' };
-      }
-    }catch(e){ console.warn('OMDb error', e); }
-    return null;
-  }
-
-  async function enrichAll(movies){
-    const queue = movies.filter(m=>!m._poster && (m.imdb_id || m.title));
-    let i=0; const out=[];
-    async function worker(){
-      while(i<queue.length){
-        const m = queue[i++];
-        const key = m.imdb_id || `${m.title}_${m.year}`;
-        if(ENRICH_CACHE[key]){ m._poster = ENRICH_CACHE[key].Poster; m._omdb = ENRICH_CACHE[key]; out.push(m); continue; }
-        const data = await enrichPoster(m);
-        if(data){ m._poster = data.Poster; m._omdb = data; ENRICH_CACHE[key]=data; out.push(m); }
-        render();// progressive update
-      }
-    }
-    const workers = Array.from({length:CONCURRENCY}, worker);
-    await Promise.all(workers);
-    render();
-  }
-
-  // ======== STATE & FILTERING ========
-  const state = { q:'', yearMin:null, yearMax:null, sort:'watched_desc', visible: 10 };
 
   function computeYearBounds(list){
-    const years = list.map(m=>m.year).filter(Boolean);
-    const min = Math.min(...years); const max=Math.max(...years);
-    return {min,isFiniteMin:isFinite(min), max,isFiniteMax:isFinite(max)};
+    const years = list.map(movie => movie.year).filter(Boolean);
+    if(!years.length) return { min:1900, max:new Date().getFullYear() };
+    return { min:Math.min(...years), max:Math.max(...years) };
+  }
+
+  function populateYearSelects(min, max){
+    const yearMin = $('#yearMin');
+    const yearMax = $('#yearMax');
+    yearMin.innerHTML = '<option value="">Min</option>';
+    yearMax.innerHTML = '<option value="">Max</option>';
+    for(let year=max; year>=min; year--){
+      yearMin.insertAdjacentHTML('beforeend', `<option value="${year}">${year}</option>`);
+      yearMax.insertAdjacentHTML('beforeend', `<option value="${year}">${year}</option>`);
+    }
   }
 
   function applyFilters(list){
-    const q = state.q.toLowerCase();
-    return list.filter(m=>{
-      const inYear = (!state.yearMin || (m.year||0) >= state.yearMin) && (!state.yearMax || (m.year||0) <= state.yearMax);
+    const query = state.q.toLowerCase();
+    return list.filter(movie => {
+      const inYear = (!state.yearMin || (movie.year || 0) >= state.yearMin) && (!state.yearMax || (movie.year || 0) <= state.yearMax);      
       if(!inYear) return false;
-      if(!q) return true;
-      const hay = [m.title, m.director.join(' '), m.genres.join(' '), m.cast.join(' '), m.tags.join(' '), m.notes||''].join(' ').toLowerCase();
-      return hay.includes(q);
-    }).sort((a,b)=>{
+      if(!query) return true;
+      const haystack = [movie.title, movie.director.join(' '), movie.genres.join(' '), movie.cast.join(' '), movie.tags.join(' '), movie.notes || ''].join(' ').toLowerCase();
+      return haystack.includes(query);
+    }).sort((a,b) => {
       switch(state.sort){
-        case 'watched_desc': return (new Date(b.watched_date||0)) - (new Date(a.watched_date||0));
-        case 'year_desc': return (b.year||0) - (a.year||0);
-        case 'title_asc': return (a.title||'').localeCompare(b.title||'');
-        case 'rating_desc': return (b.rating||0) - (a.rating||0);
+        case 'watched_desc': return new Date(b.watched_date || 0) - new Date(a.watched_date || 0);
+        case 'year_desc': return (b.year || 0) - (a.year || 0);
+        case 'title_asc': return a.title.localeCompare(b.title);
+        case 'rating_desc': return (b.rating || 0) - (a.rating || 0);
         default: return 0;
       }
     });
   }
 
-  // ======== RENDER ========
-  function movieCard(m){
-  const directors = m.director.join(', ');
-  const tags = (m.tags||[]).map(t=>`<span class="pill">${escapeHtml(t)}</span>`).join(' ');
-  const posterKey = (m.imdb_id || (m.title||'').toLowerCase().replace(/[^a-z0-9]+/g,'-')).replace(/^-|-$/g,'');
-  const posterPath = `posters/${posterKey}.jpg`;
-
-  return `
-    <article class="flip" data-year="${m.year||''}">
-      <div class="card-inner">
-        <div class="card card-face front">
-          <div class="card-body">
-            <div class="title-row">
-              <div>
-                <div class="movie-title">${escapeHtml(m.title)}</div>
-                <div class="meta">${m.year? m.year : ''} · ${escapeHtml(directors)}</div>
-              </div>
-            </div>
-            <div class="poster-slot"></div>
-          </div>
-        </div>
-        <div class="card card-face back">
-          <div class="card-body">
-            <div class="meta">Watched: ${escapeHtml(fmtDate(m.watched_date))}${m.location? ` · ${escapeHtml(m.location)}`:''}</div>
-            ${m.rating? `<div class="meta">My rating: ★ ${m.rating.toFixed(1)}</div>` : ''}
-            ${m.runtime_min? `<div class="meta">Runtime: ${m.runtime_min} min</div>` : ''}
-            ${(m.genres?.length? `<div class="meta">Genres: ${escapeHtml(m.genres.join(', '))}</div>` : '')}
-            ${(m.cast?.length? `<div class="meta">Cast: ${escapeHtml(m.cast.slice(0,6).join(', '))}${m.cast.length>6?'…':''}</div>` : '')}
-            ${m.notes? `<div class="meta">Notes: ${escapeHtml(m.notes)}</div>`:''}
-            ${m.tags?.length? `<div class="tags">${tags}</div>`:''}
-            <!-- When you're ready to show posters, replace poster-slot on the front and optionally mirror it here -->
-            <img src="${posterPath}" alt="Poster" style="width:100%; border-radius:10px; display:none" onerror="this.style.display='none'"/>
-          </div>
-        </div>
-      </div>
-    </article>
-  `;
-}
-
-function render(){
-  const grid = $('#grid');
-  const list = applyFilters(RAW);
-
-  const shown = list.slice(0, state.visible);
-  grid.innerHTML = shown.map(movieCard).join('');
-
-  const moreWrap = $('#moreWrap');
-  const btnMore = $('#btnMore');
-if (btnMore){
-  btnMore.addEventListener('click', ()=>{
-    state.visible += 10;   // reveal 10 more each time
-    render();
-  });
-}
-
-  drawCharts(list);
-}
-
-
-    // Global delegated flip handler: only one open at a time
-const GRID = document.getElementById('grid');
-GRID.addEventListener('click', (e)=>{
-  const card = e.target.closest('.flip');
-  if (!card) return;
-
-  // close any other opened cards
-  GRID.querySelectorAll('.flip.is-flipped').forEach(c => {
-    if (c !== card) c.classList.remove('is-flipped');
-  });
-
-  // toggle current
-  card.classList.toggle('is-flipped');
-});
-
-    // Bind once: flip cards (only one open at a time)
-window.addEventListener('DOMContentLoaded', () => {
-  const GRID = document.getElementById('grid');
-  if (!GRID) return;
-
-  GRID.addEventListener('click', (e)=>{
-    const card = e.target.closest('.flip');
-    if (!card || !GRID.contains(card)) return;
-
-    // Close others
-    GRID.querySelectorAll('.flip.is-flipped').forEach(c => {
-      if (c !== card) c.classList.remove('is-flipped');
-    });
-
-    // Toggle current
-    card.classList.toggle('is-flipped');
-  });
-});
-
-
-
-  // ======== UI WIRING ========
-  function populateYearSelects(min,max){
-    const yMin = $('#yearMin'); const yMax = $('#yearMax');
-    yMin.innerHTML = '<option value="">Min</option>';
-    yMax.innerHTML = '<option value="">Max</option>';
-    for(let y=max; y>=min; y--){
-      yMin.insertAdjacentHTML('beforeend', `<option value="${y}">${y}</option>`);
-      yMax.insertAdjacentHTML('beforeend', `<option value="${y}">${y}</option>`);
+ function posterMarkup(movie){
+    if(movie.poster){
+      return `<img class="poster" src="${escapeHtml(movie.poster)}" alt="Image for ${escapeHtml(movie.title)}" loading="lazy" />`;
     }
+    return '<div class="poster-slot">Add an image path with the optional <code>poster</code> field</div>';
   }
 
-  function bindUI(){
-    $('#q').addEventListener('input', e=>{ state.q = e.target.value; state.visible = 10; render(); });
-    $('#sort').addEventListener('change', e=>{ state.sort = e.target.value; state.visible = 10; render(); });
-    $('#yearMin').addEventListener('change', e=>{ state.yearMin = Number(e.target.value)||null; state.visible = 10; render(); });
-    $('#yearMax').addEventListener('change', e=>{ state.yearMax = Number(e.target.value)||null; state.visible = 10; render(); });
+  function movieCard(movie){
+    const directors = movie.director.join(', ');
+    const tags = movie.tags.map(tag => `<span class="pill">${escapeHtml(tag)}</span>`).join(' ');
+    const blogLink = movie.blog?.enabled ? `blog.html?movie=${encodeURIComponent(movie.blog.slug)}` : '';
+    const backTitle = blogLink
+      ? `<a class="movie-title" href="${blogLink}" data-no-flip title="Open minimalist blog entry">${escapeHtml(movie.blog.title || movie.title)}</a>`
+      : `<div class="movie-title">${escapeHtml(movie.title)}</div>`;
+
+    return `
+      <article class="flip" data-year="${movie.year || ''}">
+        <div class="card-inner">
+          <div class="card card-face front">
+            <div class="card-body">
+              <div class="title-row">
+                <div>
+                  <div class="movie-title">${escapeHtml(movie.title)}</div>
+                  <div class="meta">${movie.year || 'Year unknown'}${directors ? ` · ${escapeHtml(directors)}` : ''}</div>
+                </div>
+                ${movie.blog?.enabled ? '<span class="pill primary">Blog</span>' : ''}
+              </div>
+              ${posterMarkup(movie)}
+              <div class="meta">Click for details${movie.blog?.enabled ? ' and blog link' : ''}.</div>
+            </div>
+            <div class="card card-face back">
+            <div class="card-body">
+              <div class="title-row">
+                <div>${backTitle}<div class="meta">${movie.year || 'Year unknown'}${directors ? ` · ${escapeHtml(directors)}` : ''}</div></div>
+              </div>
+              ${posterMarkup(movie)}
+              <div class="meta">Watched: ${escapeHtml(fmtDate(movie.watched_date))}${movie.location ? ` · ${escapeHtml(movie.location)}` : ''}</div>
+              ${movie.rating ? `<div class="meta">My rating: ★ ${movie.rating.toFixed(1)}</div>` : ''}
+              ${movie.runtime_min ? `<div class="meta">Runtime: ${movie.runtime_min} min</div>` : ''}
+              ${movie.genres.length ? `<div class="meta">Genres: ${escapeHtml(movie.genres.join(', '))}</div>` : ''}
+              ${movie.cast.length ? `<div class="meta">Cast: ${escapeHtml(movie.cast.slice(0,6).join(', '))}${movie.cast.length > 6 ? '…' : ''}</div>` : ''}
+              ${movie.notes ? `<div class="meta">Notes: ${escapeHtml(movie.notes)}</div>` : ''}
+              ${tags ? `<div class="tags">${tags}</div>` : ''}
+            </div>
+          </div>
+        </div>
+     </article>`;
+  }
+
+  function render(){
+    const list = applyFilters(RAW);
+    const shown = list.slice(0, state.visible);
+    $('#grid').innerHTML = shown.map(movieCard).join('');
+    $('#moreWrap').style.display = list.length > state.visible ? 'block' : 'none';
+    drawCharts(list);
   }
 
   function exportCSV(){
-    const list = applyFilters(RAW);
-    const rows = list.map(m=>({
-      title: m.title,
-      year: m.year,
-      director: m.director.join('; '),
-      imdb_id: m.imdb_id||'',
-      genres: m.genres.join('; '),
-      cast: m.cast.join('; '),
-      runtime_min: m.runtime_min||'',
-      watched_date: m.watched_date||'',
-      location: m.location||'',
-      rating: m.rating??'',
-      tags: (m.tags||[]).join('; '),
-      notes: m.notes||''
+    const rows = applyFilters(RAW).map(movie => ({
+      title: movie.title,
+      year: movie.year || '',
+      director: movie.director.join('; '),
+      imdb_id: movie.imdb_id || '',
+      poster: movie.poster || '',
+      genres: movie.genres.join('; '),
+      cast: movie.cast.join('; '),
+      runtime_min: movie.runtime_min || '',
+      watched_date: movie.watched_date || '',
+      location: movie.location || '',
+      rating: movie.rating ?? '',
+      tags: movie.tags.join('; '),
+      notes: movie.notes || '',
+      blog_slug: movie.blog?.slug || '',
     }));
-    const csv = toCSV(rows);
-    const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'movies_export.csv';
-    a.click();
-    URL.revokeObjectURL(a.href);
+    const blob = new Blob([toCSV(rows)], { type:'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = 'movies_export.csv';
+    link.click();
+    URL.revokeObjectURL(link.href);
   }
 
-  // Global delegated flip handler (bind once)
-document.getElementById('grid').addEventListener('click', (e)=>{
-  const card = e.target.closest('.flip');
-  if (!card) return;
-  card.classList.toggle('is-flipped');
-});
+  function drawCharts(list){
+    const ctxYear = $('#chartByYear');
+    const ctxDirector = $('#chartByDirector');
+    if(!ctxYear || !ctxDirector || typeof Chart === 'undefined') return;
 
+    const byYear = new Map();
+    list.forEach(movie => byYear.set(movie.year || 'Unknown', (byYear.get(movie.year || 'Unknown') || 0) + 1));
+    const yearLabels = Array.from(byYear.keys()).sort((a,b) => a === 'Unknown' ? 1 : b === 'Unknown' ? -1 : a - b);
+    if(chartYear) chartYear.destroy();
+    chartYear = new Chart(ctxYear, { type:'bar', data:{ labels:yearLabels, datasets:[{ label:'Watched', data:yearLabels.map(year => byYear.get(year)) }] }, options:{ plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true } } } });
 
-  // ======== ANALYTICS ========
-let chartYear, chartDirector;
-function drawCharts(list){
-  const ctx1 = document.getElementById('chartByYear');
-  const ctx2 = document.getElementById('chartByDirector');
-  if(!ctx1 || !ctx2){ return; }  // analytics section not present
+    const byDirector = new Map();
+    list.forEach(movie => movie.director.forEach(director => byDirector.set(director, (byDirector.get(director) || 0) + 1)));
+    const directorEntries = Array.from(byDirector.entries()).sort((a,b) => b[1] - a[1]).slice(0,10);
+    if(chartDirector) chartDirector.destroy();
+    chartDirector = new Chart(ctxDirector, { type:'bar', data:{ labels:directorEntries.map(([director]) => director), datasets:[{ label:'Count', data:directorEntries.map(([,count]) => count) }] }, options:{ indexAxis:'y', plugins:{ legend:{ display:false } }, scales:{ x:{ beginAtZero:true } } } });
+  }
+  function bindCardFlips(){
+    $('#grid').addEventListener('click', event => {
+      if(event.target.closest('[data-no-flip]')) return;
+      const card = event.target.closest('.flip');
+      if(!card) return;
+      $('#grid').querySelectorAll('.flip.is-flipped').forEach(openCard => {
+        if(openCard !== card) openCard.classList.remove('is-flipped');
+      });
+      card.classList.toggle('is-flipped');
+    });
+  }
 
-  // By year
-  const byYear = new Map();
-  list.forEach(m=>{ const y = m.year||'Unknown'; byYear.set(y, (byYear.get(y)||0)+1); });
-  const yearLabels = Array.from(byYear.keys()).sort((a,b)=> (a==='Unknown')?1: (b==='Unknown')?-1 : a-b);
-  const yearCounts = yearLabels.map(k=>byYear.get(k));
-  if(chartYear) chartYear.destroy();
-  chartYear = new Chart(ctx1, {
-    type:'bar',
-    data:{ labels:yearLabels, datasets:[{ label:'Watched', data:yearCounts }] },
-    options:{ plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true } } }
-  });
+  function bindUI(){
+    $('#q').addEventListener('input', event => { state.q = event.target.value; state.visible = 10; render(); });
+    $('#sort').addEventListener('change', event => { state.sort = event.target.value; state.visible = 10; render(); });
+    $('#yearMin').addEventListener('change', event => { state.yearMin = Number(event.target.value) || null; state.visible = 10; render(); });
+    $('#yearMax').addEventListener('change', event => { state.yearMax = Number(event.target.value) || null; state.visible = 10; render(); });
+    $('#btnMore').addEventListener('click', () => { state.visible += 10; render(); });
+    $('#btnExport').addEventListener('click', exportCSV);
+  }
 
-  // Top directors
-  const byDir = new Map();
-  list.forEach(m=> m.director.forEach(d=> byDir.set(d, (byDir.get(d)||0)+1)) );
-  const dirEntries = Array.from(byDir.entries()).sort((a,b)=> b[1]-a[1]).slice(0,10);
-  const dirLabels = dirEntries.map(([d])=>d);
-  const dirCounts = dirEntries.map(([,c])=>c);
-  if(chartDirector) chartDirector.destroy();
-  chartDirector = new Chart(ctx2, {
-    type:'bar',
-    data:{ labels:dirLabels, datasets:[{ label:'Count', data:dirCounts }] },
-    options:{ indexAxis:'y', plugins:{ legend:{ display:false } }, scales:{ x:{ beginAtZero:true } } }
-  });
-}
+  function helperMovie(){
+    const title = $('#helperTitle').value.trim() || 'Untitled movie';
+    const year = Number($('#helperYear').value) || null;
+    const slug = slugify(`${title} ${year || ''}`);
+    const posterInput = $('#helperPoster');
+    const file = posterInput.files?.[0];
+    const ext = file?.name?.split('.').pop()?.toLowerCase() || 'jpg';
+    const posterName = `${slug}.${ext}`;
+    const poster = `posters/${posterName}`;
+    const blogEnabled = $('#helperBlogEnabled').checked;
+    const movie = {
+      title,
+      year,
+      director: normalizeList($('#helperDirector').value),
+      imdb_id: null,
+      poster,
+      genres: [],
+      cast: [],
+      runtime_min: null,
+      watched_date: $('#helperWatched').value,
+      location: '',
+      rating: $('#helperRating').value ? Number($('#helperRating').value) : null,
+      tags: [],
+      notes: $('#helperNotes').value.trim(),
+    };
+    if(blogEnabled){
+      movie.blog = {
+        enabled: true,
+        slug,
+        title,
+        body: $('#helperBlogBody').value.trim()
+      };
+    }
+    return { movie, posterName };
+  }
+
+  function updateHelper(){
+    const { movie, posterName } = helperMovie();
+    $('#helperPosterName').textContent = `Suggested image filename: posters/${posterName}`;
+    $('#jsonSnippet').value = JSON.stringify(movie, null, 2);
+  }
+
+  function bindHelper(){
+    $('#movieHelper').addEventListener('input', updateHelper);
+    $('#helperPoster').addEventListener('change', updateHelper);
+    $('#copySnippet').addEventListener('click', async () => {
+      $('#jsonSnippet').select();
+      try{ await navigator.clipboard.writeText($('#jsonSnippet').value); }
+      catch{ document.execCommand('copy'); }
+    });
+    updateHelper();
+  }
+
+  function bindTheme(){
+    const key = 'theme';
+    const button = $('#themeToggle');
+    const root = document.documentElement;
+    const apply = theme => {
+      root.setAttribute('data-theme', theme);
+      root.style.colorScheme = theme === 'dark' ? 'dark' : 'light';
+    };
+    const saved = localStorage.getItem(key);
+    if(saved) apply(saved);
+    button.addEventListener('click', () => {
+      const current = root.getAttribute('data-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      const next = current === 'dark' ? 'light' : 'dark';
+      apply(next);
+      localStorage.setItem(key, next);
+    });
+  }
     
-
-  // ======== THEME TOGGLE ========
-  (function(){
-    const key='theme';
-    const btn=$('#themeToggle');
-    const root=document.documentElement;
-    const apply=t=>{ root.setAttribute('data-theme', t); document.documentElement.style.colorScheme=(t==='dark'?'dark':'light'); };
-    const saved=localStorage.getItem(key); if(saved) apply(saved);
-    btn.addEventListener('click', ()=>{ const cur=root.getAttribute('data-theme')|| (matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'); const next=cur==='dark'?'light':'dark'; apply(next); localStorage.setItem(key,next); });
-  })();
-
-  // ======== BOOT ========
   (async function init(){
     try{
       RAW = await loadData();
-      const {min,max} = computeYearBounds(RAW);
+      const { min, max } = computeYearBounds(RAW);
       populateYearSelects(min, max);
       bindUI();
+      bindCardFlips();
+      bindHelper();
+      bindTheme();
       render();
-    }catch(e){ console.error(e); $('#loadError').style.display='block'; }
+    }catch(error){
+      console.error(error);
+      $('#loadError').style.display = 'block';
+      bindHelper();
+      bindTheme();
+    }
   })();
   </script>
 </body>
