@@ -8,9 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
-  <!-- Chart.js (optional analytics section) -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
   :root{
@@ -25,7 +23,7 @@
     --border-strong:#B8C0CC;
     --shadow:0 8px 22px rgba(16,24,40,.08);
     --sidebar-w:300px;
-    --card-h:360px;
+    --card-h:440px;
     --grid-gap:14px;
     --poster-bg:color-mix(in srgb, var(--primary) 6%, #fff);
   }
@@ -85,8 +83,9 @@
   .btn{ border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:10px; padding:10px 12px; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:6px; }
   .btn.primary{ border-color:color-mix(in srgb, var(--primary) 25%, var(--border)); background:color-mix(in srgb, var(--primary) 10%, transparent); color:var(--primary); }
   .btn:hover{ border-color:var(--border-strong); }
+  .btn:disabled{ opacity:.6; cursor:not-allowed; }
 
-  .grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:var(--grid-gap); align-items:stretch; }
+  .grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:var(--grid-gap); align-items:stretch; }
   .flip{ cursor:pointer; perspective:1000px; }
   .flip .card{ height:100%; border:1px solid var(--border); background:var(--card); box-shadow:var(--shadow); border-radius:14px; overflow:hidden; }
   .flip:hover .card{ border-color:var(--border-strong); box-shadow:0 10px 24px rgba(16,24,40,.12); }
@@ -95,7 +94,9 @@
   .card-face{ position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden; display:flex; }
   .card-face.front{ transform:none; }
   .card-face.back{ transform:rotateY(180deg); }
-  .card-body{ padding:14px; display:flex; flex-direction:column; gap:9px; width:100%; }
+  .card-body{ padding:14px; display:flex; flex-direction:column; gap:10px; width:100%; }
+  .card-face.front .poster,
+  .card-face.front .poster-slot{ flex:1 1 auto; min-height:300px; }
   .card-face.back .card-body{ font-size:.92rem; line-height:1.5; overflow:auto; }
   .title-row{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
   .movie-title{ font-weight:800; line-height:1.25; color:var(--text); }
@@ -104,48 +105,62 @@
   .pill{ font-size:.8rem; padding:3px 8px; border-radius:999px; border:1px solid var(--border); color:var(--muted); background:color-mix(in srgb, var(--card) 70%, #ffffff); }
   .pill.primary{ border-color:color-mix(in srgb, var(--primary) 25%, var(--border)); color:var(--primary); background:color-mix(in srgb, var(--primary) 10%, transparent); }
   .meta{ color:var(--muted); font-size:.95rem; }
+  .detail-list{ display:grid; gap:8px; }
+  .detail-item strong{ color:var(--text); }
   .tags{ display:flex; flex-wrap:wrap; gap:6px; }
-  .poster{ width:100%; aspect-ratio:16 / 9; border-radius:10px; object-fit:cover; background:var(--poster-bg); border:1px solid var(--border); }
-  .poster-slot{ width:100%; aspect-ratio:16 / 9; border-radius:10px; background:var(--poster-bg); border:1px dashed var(--border); display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:.9rem; text-align:center; padding:12px; }
+  .poster{ width:100%; aspect-ratio:3 / 4; border-radius:10px; object-fit:cover; background:var(--poster-bg); border:1px solid var(--border); }
+  .poster-slot{ width:100%; aspect-ratio:3 / 4; border-radius:10px; background:var(--poster-bg); border:1px dashed var(--border); display:flex; align-items:center; justify-content:center; color:var(--muted); font-size:.9rem; text-align:center; padding:12px; }
 
+  .movie-list{ display:none; border:1px solid var(--border); border-radius:14px; overflow:hidden; background:var(--surface); box-shadow:var(--shadow); }
+  .movie-list.is-visible{ display:block; }
+  .movie-list table{ width:100%; border-collapse:collapse; }
+  .movie-list th,
+  .movie-list td{ padding:12px 14px; text-align:left; border-bottom:1px solid var(--border); }
+  .movie-list tbody tr:last-child td{ border-bottom:0; }
+  .movie-list th{ font-size:.85rem; color:var(--muted); background:color-mix(in srgb, var(--primary) 6%, transparent); }
+
+  .admin-panel{ display:none; }
+  .admin-panel.is-visible{ display:block; }
   .upload-panel{ background:var(--card); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow); padding:16px; display:grid; gap:12px; }
   .upload-grid{ display:grid; gap:10px; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); }
-  .upload-grid label{ display:grid; gap:6px; font-weight:600; }
-  .checkbox-row{ display:flex; align-items:center; gap:8px; font-weight:600; }
+  .upload-grid label,
+  .upload-panel > label{ display:grid; gap:6px; font-weight:600; }
+  .checkbox-row{ display:flex !important; align-items:center; gap:8px; font-weight:600; }
   .code-output{ min-height:180px; width:100%; font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:.9rem; resize:vertical; }
-  .diagnosis-list{ margin:10px 0 0; padding-left:20px; }
+  .status{ border:1px solid var(--border); border-radius:10px; padding:10px 12px; background:var(--surface); color:var(--muted); }
+  .status.success{ border-color:#12B76A; color:#027A48; background:#ECFDF3; }
+  .status.error{ border-color:#FDA29B; color:#B42318; background:#FEF3F2; }
+  html[data-theme="dark"] .status.success{ background:#052E1A; color:#75E0A7; }
+  html[data-theme="dark"] .status.error{ background:#3B0A0A; color:#FDA29B; }
+
+  .modal{ display:none; position:fixed; inset:0; z-index:2000; background:rgba(11,18,32,.55); align-items:center; justify-content:center; padding:20px; }
+  .modal.is-visible{ display:flex; }
+  .modal-card{ width:min(520px, 100%); background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:18px; box-shadow:0 18px 60px rgba(0,0,0,.3); padding:20px; }
+  .modal-card h2{ margin:0 0 8px; }
+  .modal-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:14px; }
   
-  .charts{ display:grid; gap:16px; grid-template-columns:1fr; }
-  @media (min-width: 900px){ .charts{ grid-template-columns:1fr 1fr; } }
   .toggle{ position:fixed; right:16px; bottom:16px; z-index:1000; border:1px solid var(--border); background:var(--surface); color:var(--text); border-radius:999px; padding:10px 14px; box-shadow:var(--shadow); cursor:pointer; }
   #loadError{ display:none; color:#B42318; background:#FEF3F2; border:1px solid #FDA29B; border-radius:10px; padding:10px 12px; }
   :focus-visible{ outline:2px solid var(--primary); outline-offset:2px; border-radius:8px; }
 </style>
-
-
-
-
 </head>
 <body>
   <div class="layout">
-    <!-- Sidebar (fixed on desktop) -->
     <aside class="sidebar">
       <div class="profile">
         <img class="avatar" src="images/persona.jpg" alt="Profile" />
         <div class="title"><span class="accent">MoviesIWatched</span></div>
         <div class="muted" style="font-size:.95rem">Personal watch log</div>
+        <button id="loginButton" class="btn primary" type="button">Login</button>
+        <button id="logoutButton" class="btn" type="button" hidden>Logout</button>
       </div>
       <nav class="navlinks">
         <a href="#library" aria-current="true">Library</a>
-        <a href="#add-movie">Add movie</a>
-        <a href="#analytics">Analytics</a>
         <a href="https://clpalomi.github.io/" target="_blank" rel="noopener">About me</a>
       </nav>
     </aside>
 
-    <!-- Main content -->
     <main class="content">
-      <!-- Library -->
       <section class="section" id="library">
         <h2>Library</h2>
         <p class="muted" style="margin-top:-4px">Search, filter, and sort my watched movies.</p>
@@ -168,27 +183,30 @@
             </select>
           </div>
           <button id="btnExport" class="btn">Export CSV</button>
+          <button id="btnListView" class="btn">Show as list</button>
+          <button id="openAdminPanel" class="btn primary" type="button" hidden>Add movie</button>
         </div>
         
         <div id="grid" class="grid" aria-live="polite"></div>
+        <div id="movieList" class="movie-list" aria-live="polite"></div>
         <div id="moreWrap" style="text-align:center; margin-top:12px;">
           <button id="btnMore" class="btn">Show more</button>
         </div>
-
       </section>
 
-      <section class="section" id="add-movie">
-        <h2>Add a movie + image</h2>
-        <p class="muted" style="margin-top:-4px">Use this helper to generate a ready-to-paste JSON entry. Save the image file in <code>posters/</code> using the suggested filename, then add the JSON object to <code>data/movies.json</code>.</p>
+      <section class="section admin-panel" id="adminPanel">
+        <h2>Add a movie + upload image</h2>
+        <p class="muted" style="margin-top:-4px">Visible only after your approved email logs in. Images upload to Supabase Storage, so movie posters do not need to live in GitHub.</p>
         <form id="movieHelper" class="upload-panel">
           <div class="upload-grid">
+            <div id="authStatus" class="status">Configure Supabase below</div>
             <label>Title
               <input id="helperTitle" class="input" type="text" placeholder="Past Lives" />
             </label>
             <label>Year
               <input id="helperYear" class="input" type="number" min="1888" max="2100" placeholder="2023" />
             </label>
-            <label>Director
+            <label>Director(s)
               <input id="helperDirector" class="input" type="text" placeholder="Celine Song" />
             </label>
             <label>Watched date
@@ -212,7 +230,8 @@
             <textarea id="helperBlogBody" class="input" rows="4" placeholder="Leave blank unless you want a blog entry."></textarea>
           </label>
           <div class="toolbar" style="margin:0">
-            <button id="copySnippet" class="btn primary" type="button">Copy JSON snippet</button>
+            <button id="uploadPoster" class="btn primary" type="button">Upload image to Supabase</button>
+            <button id="copySnippet" class="btn" type="button">Copy JSON snippet</button>
             <span id="helperPosterName" class="muted"></span>
           </div>
           <textarea id="jsonSnippet" class="code-output" readonly aria-label="Generated JSON snippet"></textarea>
@@ -220,27 +239,37 @@
       </section>
 
       <div id="loadError" role="alert">Could not load the movie data. If you opened the file directly, run a local web server so the browser can fetch <code>data/movies.json</code>.</div>
-
-      <section class="section" id="analytics">
-        <h2>Analytics</h2>
-        <p class="muted" style="margin-top:-4px">Quick glance at your watch history. (Charts render from your JSON.)</p>
-        <div class="charts">
-          <canvas id="chartByYear" height="220"></canvas>
-          <canvas id="chartByDirector" height="220"></canvas>
-        </div>
-      </section>
-
     </main>
   </div>
 
+  <div class="modal" id="loginModal" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+    <div class="modal-card">
+      <h2 id="loginTitle">Admin login</h2>
+      <p class="muted">Supabase will email a magic link. The add-movie tools unlock only when the logged-in email matches the approved admin email.</p>
+      <label>Email
+        <input id="loginEmail" class="input" type="email" autocomplete="email" placeholder="you@example.com" />
+      </label>
+      <div id="loginStatus" class="status" style="margin-top:12px">Configure <code>SUPABASE_URL</code>, <code>SUPABASE_ANON_KEY</code>, and <code>ADMIN_EMAIL</code> in this file before using login.</div>
+      <div class="modal-actions">
+        <button id="closeLogin" class="btn" type="button">Cancel</button>
+        <button id="sendMagicLink" class="btn primary" type="button">Send magic link</button>
+      </div>
+    </div>
+  </div>
+  
   <button class="toggle" id="themeToggle" aria-label="Toggle theme">🌗 Theme</button>
 
   <script>
-  const DATA_URL = 'data/movies.json';
+  const SUPABASE_URL = 'https://YOUR_PROJECT_REF.supabase.co';
+  const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+  const ADMIN_EMAIL = 'YOUR_EMAIL@example.com';
+  const POSTER_BUCKET = 'movie-posters';
+
+  const state = { q:'', yearMin:null, yearMax:null, sort:'watched_desc', visible:10, listView:false, posterUrl:'' };
   const state = { q:'', yearMin:null, yearMax:null, sort:'watched_desc', visible:10 };
   let RAW = [];
-  let chartYear;
-  let chartDirector;
+  let supabaseClient = null;
+  let currentUser = null;
 
   const $ = (sel, root=document) => root.querySelector(sel);
 
@@ -249,7 +278,7 @@
     year: 'number',
     director: 'string | string[]',
     imdb_id: 'string | null',
-    poster: 'string | null; optional local path such as posters/past-lives-2023.jpg',
+    poster: 'public URL from Supabase Storage or another external image host',
     genres: 'string[]',
     cast: 'string[]',
     runtime_min: 'number | null',
@@ -262,8 +291,9 @@
   };
 
   function escapeHtml(value=''){
-  return String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+    return String(value).replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
   }
+    
   function slugify(value=''){
     return String(value).toLowerCase().trim().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || 'movie';
   }
@@ -274,41 +304,39 @@
     return String(value).split(',').map(item => item.trim()).filter(Boolean);
   }
     
-function normalizeMovie(movie){
+  function normalizeMovie(movie){
     const title = movie.title || 'Untitled movie';
     const year = Number(movie.year) || null;
     const slug = movie.slug || slugify(`${title} ${year || ''}`);
-    const blog = movie.blog && movie.blog.enabled ? {
-      enabled: true,
-      slug: movie.blog.slug || slug,
-      title: movie.blog.title || title,
-      body: movie.blog.body || '',
-    } : null;
-
     return {
       ...movie,
       title,
       year,
       slug,
       director: normalizeList(movie.director),
+      poster: movie.poster || '',
       genres: normalizeList(movie.genres),
       cast: normalizeList(movie.cast),
-      tags: normalizeList(movie.tags).map(tag => tag.toLowerCase()),
-      rating: movie.rating == null || movie.rating === '' ? null : Number(movie.rating),
-      poster: movie.poster || '',
-      blog,
+      tags: normalizeList(movie.tags),
+      rating: movie.rating === null || movie.rating === undefined || movie.rating === '' ? null : Number(movie.rating),
+      blog: movie.blog && movie.blog.enabled ? {
+        enabled: true,
+        slug: movie.blog.slug || slug,
+        title: movie.blog.title || title,
+        body: movie.blog.body || '',
+      } : null,
     };
   }
 
-  function fmtDate(iso){
-    if(!iso) return 'Not logged yet';
-    const date = new Date(`${iso}T00:00:00`);
-    return Number.isNaN(date.getTime()) ? iso : date.toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' });
+  function fmtDate(value){
+    if(!value) return 'Unknown';
+    const date = new Date(`${value}T00:00:00`);
+    if(Number.isNaN(date.getTime())) return value;
+    return date.toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric' });
   }
 
   function toCSV(rows){
-    if(!rows.length) return '';
-    const headers = Object.keys(rows[0]);
+    const headers = Object.keys(rows[0] || MOVIE_SCHEMA);
     const quote = value => `"${String(value ?? '').replace(/"/g,'""')}"`;
     return [headers.map(quote).join(','), ...rows.map(row => headers.map(header => quote(row[header])).join(','))].join('\n');
   }
@@ -356,20 +384,32 @@ function normalizeMovie(movie){
     });
   }
 
- function posterMarkup(movie){
+  function posterMarkup(movie){
     if(movie.poster){
       return `<img class="poster" src="${escapeHtml(movie.poster)}" alt="Image for ${escapeHtml(movie.title)}" loading="lazy" />`;
     }
-    return '<div class="poster-slot">Add an image path with the optional <code>poster</code> field</div>';
+    return '<div class="poster-slot">No external image has been added yet.</div>';
+  }
+
+  function detailItem(label, value){
+    if(!value) return '';
+    return `<div class="detail-item"><strong>${escapeHtml(label)}:</strong> <span class="meta">${escapeHtml(value)}</span></div>`;
   }
 
   function movieCard(movie){
     const directors = movie.director.join(', ');
     const tags = movie.tags.map(tag => `<span class="pill">${escapeHtml(tag)}</span>`).join(' ');
     const blogLink = movie.blog?.enabled ? `blog.html?movie=${encodeURIComponent(movie.blog.slug)}` : '';
-    const backTitle = blogLink
-      ? `<a class="movie-title" href="${blogLink}" data-no-flip title="Open minimalist blog entry">${escapeHtml(movie.blog.title || movie.title)}</a>`
-      : `<div class="movie-title">${escapeHtml(movie.title)}</div>`;
+    const blogButton = blogLink ? `<a class="btn primary" href="${blogLink}" data-no-flip title="Open minimalist blog entry">Open movie blog</a>` : '';
+    const details = [
+      detailItem('Director', directors),
+      detailItem('Watched', `${fmtDate(movie.watched_date)}${movie.location ? ` · ${movie.location}` : ''}`),
+      movie.rating ? detailItem('My rating', `★ ${movie.rating.toFixed(1)}`) : '',
+      movie.runtime_min ? detailItem('Runtime', `${movie.runtime_min} min`) : '',
+      movie.genres.length ? detailItem('Genres', movie.genres.join(', ')) : '',
+      movie.cast.length ? detailItem('Cast', `${movie.cast.slice(0,8).join(', ')}${movie.cast.length > 8 ? '…' : ''}`) : '',
+      detailItem('Notes', movie.notes || ''),
+    ].filter(Boolean).join('');
 
     return `
       <article class="flip" data-year="${movie.year || ''}">
@@ -384,33 +424,48 @@ function normalizeMovie(movie){
                 ${movie.blog?.enabled ? '<span class="pill primary">Blog</span>' : ''}
               </div>
               ${posterMarkup(movie)}
-              <div class="meta">Click for details${movie.blog?.enabled ? ' and blog link' : ''}.</div>
             </div>
-            <div class="card card-face back">
+            </div>
+          <div class="card card-face back">
             <div class="card-body">
               <div class="title-row">
-                <div>${backTitle}<div class="meta">${movie.year || 'Year unknown'}${directors ? ` · ${escapeHtml(directors)}` : ''}</div></div>
+                <div>
+                  <div class="movie-title">${escapeHtml(movie.title)}</div>
+                  <div class="meta">${movie.year || 'Year unknown'}</div>
+                </div>
               </div>
-              ${posterMarkup(movie)}
-              <div class="meta">Watched: ${escapeHtml(fmtDate(movie.watched_date))}${movie.location ? ` · ${escapeHtml(movie.location)}` : ''}</div>
-              ${movie.rating ? `<div class="meta">My rating: ★ ${movie.rating.toFixed(1)}</div>` : ''}
-              ${movie.runtime_min ? `<div class="meta">Runtime: ${movie.runtime_min} min</div>` : ''}
-              ${movie.genres.length ? `<div class="meta">Genres: ${escapeHtml(movie.genres.join(', '))}</div>` : ''}
-              ${movie.cast.length ? `<div class="meta">Cast: ${escapeHtml(movie.cast.slice(0,6).join(', '))}${movie.cast.length > 6 ? '…' : ''}</div>` : ''}
-              ${movie.notes ? `<div class="meta">Notes: ${escapeHtml(movie.notes)}</div>` : ''}
+              <div class="detail-list">${details || '<div class="meta">No extra details have been added for this movie yet.</div>'}</div>
               ${tags ? `<div class="tags">${tags}</div>` : ''}
+              ${blogButton}
             </div>
           </div>
         </div>
      </article>`;
   }
 
+  function movieList(list){
+    const rows = list.map(movie => `
+      <tr>
+        <td>${escapeHtml(movie.title)}</td>
+        <td>${movie.year || ''}</td>
+        <td>${escapeHtml(movie.director.join(', '))}</td>
+      </tr>`).join('');
+    return `
+      <table>
+        <thead><tr><th>Title</th><th>Year</th><th>Director(s)</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="3">No movies match the current filters.</td></tr>'}</tbody>
+      </table>`;
+  }
+
   function render(){
     const list = applyFilters(RAW);
-    const shown = list.slice(0, state.visible);
-    $('#grid').innerHTML = shown.map(movieCard).join('');
-    $('#moreWrap').style.display = list.length > state.visible ? 'block' : 'none';
-    drawCharts(list);
+    const shown = state.listView ? list : list.slice(0, state.visible);
+    $('#grid').innerHTML = state.listView ? '' : shown.map(movieCard).join('');
+    $('#grid').style.display = state.listView ? 'none' : 'grid';
+    $('#movieList').innerHTML = state.listView ? movieList(shown) : '';
+    $('#movieList').classList.toggle('is-visible', state.listView);
+    $('#moreWrap').style.display = !state.listView && list.length > state.visible ? 'block' : 'none';
+    $('#btnListView').textContent = state.listView ? 'Show cards' : 'Show as list';
   }
 
   function exportCSV(){
@@ -438,23 +493,6 @@ function normalizeMovie(movie){
     URL.revokeObjectURL(link.href);
   }
 
-  function drawCharts(list){
-    const ctxYear = $('#chartByYear');
-    const ctxDirector = $('#chartByDirector');
-    if(!ctxYear || !ctxDirector || typeof Chart === 'undefined') return;
-
-    const byYear = new Map();
-    list.forEach(movie => byYear.set(movie.year || 'Unknown', (byYear.get(movie.year || 'Unknown') || 0) + 1));
-    const yearLabels = Array.from(byYear.keys()).sort((a,b) => a === 'Unknown' ? 1 : b === 'Unknown' ? -1 : a - b);
-    if(chartYear) chartYear.destroy();
-    chartYear = new Chart(ctxYear, { type:'bar', data:{ labels:yearLabels, datasets:[{ label:'Watched', data:yearLabels.map(year => byYear.get(year)) }] }, options:{ plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true } } } });
-
-    const byDirector = new Map();
-    list.forEach(movie => movie.director.forEach(director => byDirector.set(director, (byDirector.get(director) || 0) + 1)));
-    const directorEntries = Array.from(byDirector.entries()).sort((a,b) => b[1] - a[1]).slice(0,10);
-    if(chartDirector) chartDirector.destroy();
-    chartDirector = new Chart(ctxDirector, { type:'bar', data:{ labels:directorEntries.map(([director]) => director), datasets:[{ label:'Count', data:directorEntries.map(([,count]) => count) }] }, options:{ indexAxis:'y', plugins:{ legend:{ display:false } }, scales:{ x:{ beginAtZero:true } } } });
-  }
   function bindCardFlips(){
     $('#grid').addEventListener('click', event => {
       if(event.target.closest('[data-no-flip]')) return;
@@ -474,6 +512,8 @@ function normalizeMovie(movie){
     $('#yearMax').addEventListener('change', event => { state.yearMax = Number(event.target.value) || null; state.visible = 10; render(); });
     $('#btnMore').addEventListener('click', () => { state.visible += 10; render(); });
     $('#btnExport').addEventListener('click', exportCSV);
+    $('#btnListView').addEventListener('click', () => { state.listView = !state.listView; render(); });
+    $('#openAdminPanel').addEventListener('click', () => $('#adminPanel').classList.toggle('is-visible'));
   }
 
   function helperMovie(){
@@ -484,7 +524,7 @@ function normalizeMovie(movie){
     const file = posterInput.files?.[0];
     const ext = file?.name?.split('.').pop()?.toLowerCase() || 'jpg';
     const posterName = `${slug}.${ext}`;
-    const poster = `posters/${posterName}`;
+    const poster = state.posterUrl || `supabase://${POSTER_BUCKET}/${posterName}`;
     const blogEnabled = $('#helperBlogEnabled').checked;
     const movie = {
       title,
@@ -509,18 +549,116 @@ function normalizeMovie(movie){
         body: $('#helperBlogBody').value.trim()
       };
     }
-    return { movie, posterName };
+    return { movie, posterName, file };
   }
 
   function updateHelper(){
     const { movie, posterName } = helperMovie();
-    $('#helperPosterName').textContent = `Suggested image filename: posters/${posterName}`;
+    $('#helperPosterName').textContent = state.posterUrl ? 'Image uploaded to Supabase Storage.' : `Supabase Storage path: ${POSTER_BUCKET}/${posterName}`;
     $('#jsonSnippet').value = JSON.stringify(movie, null, 2);
   }
 
+  function supabaseConfigured(){
+    return SUPABASE_URL.startsWith('https://') && !SUPABASE_URL.includes('YOUR_PROJECT_REF') && !SUPABASE_ANON_KEY.includes('YOUR_SUPABASE_ANON_KEY') && !ADMIN_EMAIL.includes('YOUR_EMAIL');
+  }
+
+  function setStatus(element, message, type=''){
+    element.innerHTML = message;
+    element.className = `status${type ? ` ${type}` : ''}`;
+  }
+
+  function isAdmin(user){
+    return Boolean(user?.email && user.email.toLowerCase() === ADMIN_EMAIL.toLowerCase());
+  }
+
+  async function refreshAuthUI(){
+    const admin = isAdmin(currentUser);
+    $('#loginButton').hidden = admin;
+    $('#logoutButton').hidden = !admin;
+    $('#openAdminPanel').hidden = !admin;
+    $('#adminPanel').classList.toggle('is-visible', admin && $('#adminPanel').classList.contains('is-visible'));
+    if(admin){
+      setStatus($('#authStatus'), `Logged in as ${escapeHtml(currentUser.email)}. You can upload poster images to Supabase Storage.`, 'success');
+    }else if(supabaseConfigured()){
+      setStatus($('#authStatus'), 'Log in with the approved admin email to upload images and generate a movie entry.');
+    }
+  }
+
+  function initSupabase(){
+    if(!supabaseConfigured() || !window.supabase) return;
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    supabaseClient.auth.getUser().then(({ data }) => {
+      currentUser = data.user;
+      refreshAuthUI();
+    });
+    supabaseClient.auth.onAuthStateChange((_event, session) => {
+      currentUser = session?.user || null;
+      refreshAuthUI();
+    });
+  }
+
+  function bindAuth(){
+    $('#loginButton').addEventListener('click', () => {
+      $('#loginModal').classList.add('is-visible');
+      $('#loginEmail').focus();
+    });
+    $('#closeLogin').addEventListener('click', () => $('#loginModal').classList.remove('is-visible'));
+    $('#logoutButton').addEventListener('click', async () => {
+      if(supabaseClient) await supabaseClient.auth.signOut();
+      currentUser = null;
+      await refreshAuthUI();
+    });
+    $('#sendMagicLink').addEventListener('click', async () => {
+      const email = $('#loginEmail').value.trim();
+      if(!supabaseConfigured() || !supabaseClient){
+        setStatus($('#loginStatus'), 'Supabase is not configured yet. Follow the README setup, then replace the placeholder constants in index.html.', 'error');
+        return;
+      }
+      if(email.toLowerCase() !== ADMIN_EMAIL.toLowerCase()){
+        setStatus($('#loginStatus'), 'This email is not allowed to administer the movie library.', 'error');
+        return;
+      }
+      const { error } = await supabaseClient.auth.signInWithOtp({
+        email,
+        options: { emailRedirectTo: window.location.origin + window.location.pathname, shouldCreateUser: false }
+      });
+      if(error){
+        setStatus($('#loginStatus'), escapeHtml(error.message), 'error');
+        return;
+      }
+      setStatus($('#loginStatus'), 'Magic link sent. Open it from your email to unlock the add-movie tools.', 'success');
+    });
+  }
+
+  async function uploadPoster(){
+    const { file, posterName } = helperMovie();
+    if(!supabaseConfigured() || !supabaseClient){
+      setStatus($('#authStatus'), 'Supabase is not configured yet. Replace the placeholder constants in index.html first.', 'error');
+      return;
+    }
+    if(!isAdmin(currentUser)){
+      setStatus($('#authStatus'), 'Please log in with the approved admin email before uploading images.', 'error');
+      return;
+    }
+    if(!file){
+      setStatus($('#authStatus'), 'Choose an image file before uploading.', 'error');
+      return;
+    }
+    const { error } = await supabaseClient.storage.from(POSTER_BUCKET).upload(posterName, file, { upsert:true, contentType:file.type || 'image/jpeg' });
+    if(error){
+      setStatus($('#authStatus'), escapeHtml(error.message), 'error');
+      return;
+    }
+    const { data } = supabaseClient.storage.from(POSTER_BUCKET).getPublicUrl(posterName);
+    state.posterUrl = data.publicUrl;
+    updateHelper();
+    setStatus($('#authStatus'), 'Image uploaded. Copy the JSON snippet and add it to data/movies.json.', 'success');
+  }
+
   function bindHelper(){
-    $('#movieHelper').addEventListener('input', updateHelper);
-    $('#helperPoster').addEventListener('change', updateHelper);
+    $('#movieHelper').addEventListener('input', () => { state.posterUrl = ''; updateHelper(); });
+    $('#helperPoster').addEventListener('change', () => { state.posterUrl = ''; updateHelper(); });
+    $('#uploadPoster').addEventListener('click', uploadPoster);
     $('#copySnippet').addEventListener('click', async () => {
       $('#jsonSnippet').select();
       try{ await navigator.clipboard.writeText($('#jsonSnippet').value); }
@@ -556,12 +694,18 @@ function normalizeMovie(movie){
       bindCardFlips();
       bindHelper();
       bindTheme();
+      bindAuth();
+      initSupabase();
+      await refreshAuthUI();
       render();
     }catch(error){
       console.error(error);
       $('#loadError').style.display = 'block';
       bindHelper();
       bindTheme();
+      bindAuth();
+      initSupabase();
+      await refreshAuthUI();
     }
   })();
   </script>
