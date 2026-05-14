@@ -376,15 +376,27 @@
   }
 
   async function loadData(){
-    const jsonMovies = await loadJsonMovies();
-    let supabaseMovies = [];
-    try{
-      supabaseMovies = await loadSupabaseMovies();
-    }catch(error){
-      console.warn('Could not load Supabase movies; showing movies.json data only.', error);
-      if(supabaseConfigured()) setStatus($('#authStatus'), `Could not load Supabase movies: ${escapeHtml(error.message)}`, 'error');
+    const [jsonResult, supabaseResult] = await Promise.allSettled([
+      loadJsonMovies(),
+      loadSupabaseMovies(),
+    ]);
+
+    const jsonMovies = jsonResult.status === 'fulfilled' ? jsonResult.value : [];
+    const supabaseMovies = supabaseResult.status === 'fulfilled' ? supabaseResult.value : [];
+
+    if(jsonResult.status === 'rejected'){
+      console.warn('Could not load movies.json.', jsonResult.reason);
     }
-    return mergeMovies(jsonMovies, supabaseMovies);
+    if(supabaseResult.status === 'rejected'){
+      console.warn('Could not load Supabase movies.', supabaseResult.reason);
+      if(supabaseConfigured()) setStatus($('#authStatus'), `Could not load Supabase movies: ${escapeHtml(supabaseResult.reason.message)}`, 'error');
+    }
+
+    const movies = mergeMovies(jsonMovies, supabaseMovies);
+    if(!movies.length && jsonResult.status === 'rejected' && supabaseResult.status === 'rejected'){
+      throw new Error('Could not load movies from movies.json or Supabase.');
+    }
+    return movies;
   }
 
   function computeYearBounds(list){
@@ -562,8 +574,8 @@
     const posterInput = $('#helperPoster');
     const file = posterInput.files?.[0];
     const ext = file?.name?.split('.').pop()?.toLowerCase() || 'jpg';
+    const posterName = `${slug}.${ext}`;
     const poster = state.posterUrl || '';
-    const poster = state.posterUrl || `supabase://${POSTER_BUCKET}/${posterName}`;
     const blogEnabled = $('#helperBlogEnabled').checked;
     const movie = {
       title,
@@ -776,11 +788,7 @@
     }catch(error){
       console.error(error);
       $('#loadError').style.display = 'block';
-      bindHelper();
-      bindTheme();
-      bindAuth();
-      initSupabase();
-      await refreshAuthUI();
+      $('#loadError').textContent = 'Could not load movies from movies.json or Supabase.';
     }
   })();
   </script>
