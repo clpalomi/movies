@@ -65,9 +65,12 @@
   .accent{ color:var(--primary); }
 
   .navlinks{ margin-top:18px; display:flex; flex-direction:column; gap:6px; }
-  .navlinks a{ display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:12px; color:var(--text); text-decoration:none; border:1px solid transparent; }
+  .navlinks a,
+  .navlinks .btn{ display:flex; align-items:center; gap:10px; width:100%; padding:10px 12px; border-radius:12px; color:var(--text); text-decoration:none; border:1px solid transparent; text-align:left; justify-content:flex-start; font:inherit; }
   .navlinks a:hover,
+  .navlinks .btn:hover
   .navlinks a[aria-current="true"]{ background:color-mix(in srgb, var(--primary) 10%, transparent); border-color:color-mix(in srgb, var(--primary) 28%, var(--border)); color:var(--primary); }
+  .navlinks .btn.primary{ color:var(--primary); }
   
   .content{ padding:24px; }
   .section{ background:transparent; border:none; box-shadow:none; padding:18px 0 28px; max-width:1100px; margin:0 auto 12px; }
@@ -151,12 +154,12 @@
         <img class="avatar" src="images/persona.jpg" alt="Profile" />
         <div class="title"><span class="accent">MoviesIWatched</span></div>
         <div class="muted" style="font-size:.95rem">Personal watch log</div>
-        <button id="loginButton" class="btn primary" type="button">Login</button>
-        <button id="logoutButton" class="btn" type="button" hidden>Logout</button>
       </div>
       <nav class="navlinks">
         <a href="#library" aria-current="true">Library</a>
         <a href="https://clpalomi.github.io/" target="_blank" rel="noopener">About me</a>
+        <button id="loginButton" class="btn primary" type="button">Login</button>
+        <button id="logoutButton" class="btn" type="button" hidden>Logout</button>
       </nav>
     </aside>
 
@@ -195,8 +198,8 @@
       </section>
 
       <section class="section admin-panel" id="adminPanel">
-        <h2>Add a movie + upload image</h2>
-        <p class="muted" style="margin-top:-4px">Visible only after your approved email logs in. Images upload to Supabase Storage, so movie posters do not need to live in GitHub.</p>
+        <h2>Add a movie</h2>
+        <p class="muted" style="margin-top:-4px">Visible only after your approved email logs in. New movies are inserted directly into the Supabase database table. Poster uploads still use Supabase Storage.</p>
         <form id="movieHelper" class="upload-panel">
           <div class="upload-grid">
             <div id="authStatus" class="status">Configure Supabase below</div>
@@ -230,8 +233,9 @@
             <textarea id="helperBlogBody" class="input" rows="4" placeholder="Leave blank unless you want a blog entry."></textarea>
           </label>
           <div class="toolbar" style="margin:0">
-            <button id="uploadPoster" class="btn primary" type="button">Upload image to Supabase</button>
-            <button id="copySnippet" class="btn" type="button">Copy JSON snippet</button>
+            <button id="uploadPoster" class="btn" type="button">Upload image to Supabase</button>
+            <button id="saveMovie" class="btn primary" type="button">Add movie to Supabase</button>
+            <button id="copySnippet" class="btn" type="button">Copy JSON backup</button>
             <span id="helperPosterName" class="muted"></span>
           </div>
           <textarea id="jsonSnippet" class="code-output" readonly aria-label="Generated JSON snippet"></textarea>
@@ -264,9 +268,10 @@
   const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
   const ADMIN_EMAIL = 'YOUR_EMAIL@example.com';
   const POSTER_BUCKET = 'movie-posters';
+  const MOVIES_TABLE = 'movies';
+  const DATA_URL = 'data/movies.json';
 
   const state = { q:'', yearMin:null, yearMax:null, sort:'watched_desc', visible:10, listView:false, posterUrl:'' };
-  const state = { q:'', yearMin:null, yearMax:null, sort:'watched_desc', visible:10 };
   let RAW = [];
   let supabaseClient = null;
   let currentUser = null;
@@ -341,11 +346,45 @@
     return [headers.map(quote).join(','), ...rows.map(row => headers.map(header => quote(row[header])).join(','))].join('\n');
   }
 
-  async function loadData(){
+  async function loadJsonMovies(){
     const response = await fetch(DATA_URL, { cache:'no-store' });
     if(!response.ok) throw new Error('Failed to load movies.json');
     const data = await response.json();
-    return data.map(normalizeMovie);
+    return data.map(movie => normalizeMovie({ ...movie, source:'movies.json' }));
+  }
+
+  async function loadSupabaseMovies(){
+    if(!supabaseConfigured() || !supabaseClient) return [];
+    const { data, error } = await supabaseClient
+      .from(MOVIES_TABLE)
+      .select('*')
+      .order('watched_date', { ascending:false, nullsFirst:false })
+      .order('created_at', { ascending:false, nullsFirst:false });
+    if(error) throw error;
+    return (data || []).map(movie => normalizeMovie({ ...movie, source:'supabase' }));
+  }
+
+  function movieKey(movie){
+    return movie.id ? `id:${movie.id}` : `${slugify(movie.title)}-${movie.year || ''}-${movie.watched_date || ''}`;
+  }
+
+  function mergeMovies(jsonMovies, supabaseMovies){
+    const merged = new Map();
+    jsonMovies.forEach(movie => merged.set(movieKey(movie), movie));
+    supabaseMovies.forEach(movie => merged.set(movieKey(movie), movie));
+    return [...merged.values()];
+  }
+
+  async function loadData(){
+    const jsonMovies = await loadJsonMovies();
+    let supabaseMovies = [];
+    try{
+      supabaseMovies = await loadSupabaseMovies();
+    }catch(error){
+      console.warn('Could not load Supabase movies; showing movies.json data only.', error);
+      if(supabaseConfigured()) setStatus($('#authStatus'), `Could not load Supabase movies: ${escapeHtml(error.message)}`, 'error');
+    }
+    return mergeMovies(jsonMovies, supabaseMovies);
   }
 
   function computeYearBounds(list){
@@ -523,7 +562,7 @@
     const posterInput = $('#helperPoster');
     const file = posterInput.files?.[0];
     const ext = file?.name?.split('.').pop()?.toLowerCase() || 'jpg';
-    const posterName = `${slug}.${ext}`;
+    const poster = state.posterUrl || '';
     const poster = state.posterUrl || `supabase://${POSTER_BUCKET}/${posterName}`;
     const blogEnabled = $('#helperBlogEnabled').checked;
     const movie = {
@@ -535,7 +574,7 @@
       genres: [],
       cast: [],
       runtime_min: null,
-      watched_date: $('#helperWatched').value,
+      watched_date: $('#helperWatched').value || null,
       location: '',
       rating: $('#helperRating').value ? Number($('#helperRating').value) : null,
       tags: [],
@@ -554,7 +593,7 @@
 
   function updateHelper(){
     const { movie, posterName } = helperMovie();
-    $('#helperPosterName').textContent = state.posterUrl ? 'Image uploaded to Supabase Storage.' : `Supabase Storage path: ${POSTER_BUCKET}/${posterName}`;
+    $('#helperPosterName').textContent = state.posterUrl ? 'Image uploaded to Supabase Storage.' : `Optional Supabase Storage path: ${POSTER_BUCKET}/${posterName}`;
     $('#jsonSnippet').value = JSON.stringify(movie, null, 2);
   }
 
@@ -578,9 +617,9 @@
     $('#openAdminPanel').hidden = !admin;
     $('#adminPanel').classList.toggle('is-visible', admin && $('#adminPanel').classList.contains('is-visible'));
     if(admin){
-      setStatus($('#authStatus'), `Logged in as ${escapeHtml(currentUser.email)}. You can upload poster images to Supabase Storage.`, 'success');
+      setStatus($('#authStatus'), `Logged in as ${escapeHtml(currentUser.email)}. You can add movies to Supabase.`, 'success');
     }else if(supabaseConfigured()){
-      setStatus($('#authStatus'), 'Log in with the approved admin email to upload images and generate a movie entry.');
+      setStatus($('#authStatus'), 'Log in with as admin email to add movies.');
     }
   }
 
@@ -652,13 +691,49 @@
     const { data } = supabaseClient.storage.from(POSTER_BUCKET).getPublicUrl(posterName);
     state.posterUrl = data.publicUrl;
     updateHelper();
-    setStatus($('#authStatus'), 'Image uploaded. Copy the JSON snippet and add it to data/movies.json.', 'success');
+    setStatus($('#authStatus'), 'Image uploaded. Click “Add movie to Supabase” to save the movie.', 'success');
+  }
+
+  async function saveMovie(){
+    const { movie, file } = helperMovie();
+    if(!supabaseConfigured() || !supabaseClient){
+      setStatus($('#authStatus'), 'Supabase is not configured yet. Replace the placeholder constants in index.html first.', 'error');
+      return;
+    }
+    if(!isAdmin(currentUser)){
+      setStatus($('#authStatus'), 'Please log in with the approved admin email before adding movies.', 'error');
+      return;
+    }
+    if(!movie.title || movie.title === 'Untitled movie'){
+      setStatus($('#authStatus'), 'Add a movie title before saving.', 'error');
+      return;
+    }
+    if(file && !state.posterUrl){
+      setStatus($('#authStatus'), 'Upload the selected poster first, or clear the poster field before saving.', 'error');
+      return;
+    }
+
+    const { error } = await supabaseClient.from(MOVIES_TABLE).insert([movie]);
+    if(error){
+      setStatus($('#authStatus'), escapeHtml(error.message), 'error');
+      return;
+    }
+
+    setStatus($('#authStatus'), `${escapeHtml(movie.title)} was added to Supabase.`, 'success');
+    $('#movieHelper').reset();
+    state.posterUrl = '';
+    updateHelper();
+    RAW = await loadData();
+    const { min, max } = computeYearBounds(RAW);
+    populateYearSelects(min, max);
+    render();
   }
 
   function bindHelper(){
-    $('#movieHelper').addEventListener('input', () => { state.posterUrl = ''; updateHelper(); });
+    $('#movieHelper').addEventListener('input', updateHelper);
     $('#helperPoster').addEventListener('change', () => { state.posterUrl = ''; updateHelper(); });
     $('#uploadPoster').addEventListener('click', uploadPoster);
+    $('#saveMovie').addEventListener('click', saveMovie);
     $('#copySnippet').addEventListener('click', async () => {
       $('#jsonSnippet').select();
       try{ await navigator.clipboard.writeText($('#jsonSnippet').value); }
@@ -687,9 +762,6 @@
     
   (async function init(){
     try{
-      RAW = await loadData();
-      const { min, max } = computeYearBounds(RAW);
-      populateYearSelects(min, max);
       bindUI();
       bindCardFlips();
       bindHelper();
@@ -697,6 +769,9 @@
       bindAuth();
       initSupabase();
       await refreshAuthUI();
+      RAW = await loadData();
+      const { min, max } = computeYearBounds(RAW);
+      populateYearSelects(min, max);
       render();
     }catch(error){
       console.error(error);
