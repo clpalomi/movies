@@ -98,3 +98,67 @@ const MOVIES_TABLE = 'movies';
 11. Deploy the site. Visitors will see movies from `data/movies.json` plus any rows in Supabase. Log in with the approved admin email, click **Add movie**, optionally upload a poster, then click **Add movie to Supabase**.
 
 > The email check in the browser is only for hiding the admin interface. The Supabase RLS policies above are the real protection that prevents other users from writing movies or uploading images.
+
+## OMDb enrichment through Cloudflare
+
+Use a Cloudflare Worker as a small proxy so the browser can request OMDb data without exposing your OMDb API key in `index.html`.
+
+1. Install and log in to Wrangler locally, or use the Cloudflare dashboard editor.
+2. From the `cloudflare/` directory, create the Worker secret with your OMDb key:
+
+```sh
+cd cloudflare
+npx wrangler secret put OMDB_API_KEY
+```
+
+3. Deploy the Worker:
+
+```sh
+npx wrangler deploy
+```
+
+4. Copy the deployed Worker URL and update `OMDB_ENDPOINT` in `index.html` so it points at the `/api/omdb` route, for example:
+
+```js
+const OMDB_ENDPOINT = 'https://movies-omdb-proxy.YOUR_SUBDOMAIN.workers.dev/api/omdb';
+```
+
+The Worker only forwards a small allow-list of OMDb query parameters (`i`, `t`, `y`, `type`, `plot`, `r`, and `v`) and caches successful responses for one day. Cards use the endpoint to show compact OMDb data on the back. The admin form also has a **Fetch OMDb details** button that can prefill title, year, director, IMDb ID, runtime, genres, and cast. Posters remain manual: upload a file to Supabase Storage or paste an external poster URL.
+
+If you want to keep a durable copy of the OMDb response with each Supabase movie, add an optional `omdb` JSONB column:
+
+```sql
+alter table public.movies
+add column if not exists omdb jsonb;
+```
+
+## Admin edits, poster changes, and deletes
+
+The admin UI can now update Supabase movies, remove/replace poster URLs, and delete Supabase movies. Existing rows from `data/movies.json` are still repository-owned and cannot be edited from the browser.
+
+Add update and delete RLS policies for your admin email:
+
+```sql
+create policy "Only Claudio updates movies"
+on public.movies for update
+to authenticated
+using (auth.jwt() ->> 'email' = 'YOUR_EMAIL@example.com')
+with check (auth.jwt() ->> 'email' = 'YOUR_EMAIL@example.com');
+
+create policy "Only Claudio deletes movies"
+on public.movies for delete
+to authenticated
+using (auth.jwt() ->> 'email' = 'YOUR_EMAIL@example.com');
+```
+
+Allow the admin user to delete poster files from the `movie-posters` bucket:
+
+```sql
+create policy "Only Claudio deletes posters"
+on storage.objects for delete
+to authenticated
+using (
+  bucket_id = 'movie-posters'
+  and auth.jwt() ->> 'email' = 'YOUR_EMAIL@example.com'
+);
+```
