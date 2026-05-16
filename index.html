@@ -109,6 +109,9 @@
   .pill.primary{ border-color:color-mix(in srgb, var(--primary) 25%, var(--border)); color:var(--primary); background:color-mix(in srgb, var(--primary) 10%, transparent); }
   .meta{ color:var(--muted); font-size:.95rem; }
   .detail-list{ display:grid; gap:8px; }
+  .omdb-panel{ display:grid; gap:8px; border-top:1px solid var(--border); padding-top:10px; margin-top:2px; }
+  .omdb-actions, .admin-card-actions{ display:flex; flex-wrap:wrap; gap:8px; }
+  .admin-card-actions{ border-top:1px solid var(--border); padding-top:10px; }
   .detail-item strong{ color:var(--text); }
   .tags{ display:flex; flex-wrap:wrap; gap:6px; }
   .poster{ width:100%; aspect-ratio:3 / 4; border-radius:10px; object-fit:cover; background:var(--poster-bg); border:1px solid var(--border); }
@@ -199,7 +202,7 @@
 
       <section class="section admin-panel" id="adminPanel">
         <h2>Add a movie</h2>
-        <p class="muted" style="margin-top:-4px">Visible only after your approved email logs in. New movies are inserted directly into the Supabase database table. Poster uploads still use Supabase Storage.</p>
+        <p class="muted" style="margin-top:-4px">Visible only after log-in. New movies are inserted directly into the Supabase database table. Poster uploads still use Supabase Storage.</p>
         <form id="movieHelper" class="upload-panel">
           <div class="upload-grid">
             <div id="authStatus" class="status">Configure Supabase below</div>
@@ -212,14 +215,35 @@
             <label>Director(s)
               <input id="helperDirector" class="input" type="text" placeholder="Celine Song" />
             </label>
+            <label>IMDb ID
+              <input id="helperImdbId" class="input" type="text" placeholder="tt13238346" />
+            </label>
             <label>Watched date
               <input id="helperWatched" class="input" type="date" />
             </label>
-            <label>Movie image
+            <label>Movie image upload
               <input id="helperPoster" class="input" type="file" accept="image/*" />
+            </label>
+            <label>Poster URL
+              <input id="helperPosterUrl" class="input" type="url" placeholder="https://.../poster.jpg" />
             </label>
             <label>Rating
               <input id="helperRating" class="input" type="number" min="0" max="10" step="0.1" placeholder="8.7" />
+            </label>
+            <label>Runtime (minutes)
+              <input id="helperRuntime" class="input" type="number" min="1" placeholder="106" />
+            </label>
+            <label>Genres
+              <input id="helperGenres" class="input" type="text" placeholder="Drama, Romance" />
+            </label>
+            <label>Cast
+              <input id="helperCast" class="input" type="text" placeholder="Greta Lee, Teo Yoo" />
+            </label>
+            <label>Location
+              <input id="helperLocation" class="input" type="text" placeholder="Santiago" />
+            </label>
+            <label>Tags
+              <input id="helperTags" class="input" type="text" placeholder="cinema, favorite" />
             </label>
           </div>
           <label>Notes
@@ -233,8 +257,10 @@
             <textarea id="helperBlogBody" class="input" rows="4" placeholder="Leave blank unless you want a blog entry."></textarea>
           </label>
           <div class="toolbar" style="margin:0">
+            <button id="fetchOmdb" class="btn" type="button">Fetch OMDb details</button>
             <button id="uploadPoster" class="btn" type="button">Upload image to Supabase</button>
             <button id="saveMovie" class="btn primary" type="button">Add movie to Supabase</button>
+            <button id="cancelEditMovie" class="btn" type="button" hidden>Cancel edit</button>
             <button id="copySnippet" class="btn" type="button">Copy JSON backup</button>
             <span id="helperPosterName" class="muted"></span>
           </div>
@@ -270,8 +296,9 @@
   const POSTER_BUCKET = 'movie-posters';
   const MOVIES_TABLE = 'movies';
   const DATA_URL = 'data/movies.json';
+  const OMDB_ENDPOINT = 'https://YOUR_WORKER_SUBDOMAIN.workers.dev/api/omdb';
 
-  const state = { q:'', yearMin:null, yearMax:null, sort:'watched_desc', visible:10, listView:false, posterUrl:'' };
+  const state = { q:'', yearMin:null, yearMax:null, sort:'watched_desc', visible:10, listView:false, posterUrl:'', editingId:null, omdbCache:{}, omdbLoading:new Set() };
   let RAW = [];
   let supabaseClient = null;
   let currentUser = null;
@@ -292,7 +319,8 @@
     rating: 'number | null',
     tags: 'string[]',
     notes: 'string',
-    blog: '{ enabled: boolean, slug: string, title?: string, body?: string } | null; optional'
+    blog: '{ enabled: boolean, slug: string, title?: string, body?: string } | null; optional',
+    omdb: 'cached OMDb response object | null; optional'
   };
 
   function escapeHtml(value=''){
@@ -323,7 +351,9 @@
       genres: normalizeList(movie.genres),
       cast: normalizeList(movie.cast),
       tags: normalizeList(movie.tags),
+      runtime_min: Number(movie.runtime_min) || null,
       rating: movie.rating === null || movie.rating === undefined || movie.rating === '' ? null : Number(movie.rating),
+      omdb: movie.omdb || null,
       blog: movie.blog && movie.blog.enabled ? {
         enabled: true,
         slug: movie.blog.slug || slug,
@@ -435,6 +465,106 @@
     });
   }
 
+
+
+  function omdbConfigured(){
+    return OMDB_ENDPOINT.startsWith('https://') && !OMDB_ENDPOINT.includes('YOUR_WORKER_SUBDOMAIN');
+  }
+
+  function omdbKey(movie){
+    return movie.imdb_id ? `imdb:${movie.imdb_id}` : `title:${slugify(movie.title)}:${movie.year || ''}`;
+  }
+
+  function compactOmdb(data){
+    if(!data || data.Response === 'False') return null;
+    return {
+      Title: data.Title,
+      Year: data.Year,
+      Rated: data.Rated,
+      Released: data.Released,
+      Runtime: data.Runtime,
+      Genre: data.Genre,
+      Director: data.Director,
+      Writer: data.Writer,
+      Actors: data.Actors,
+      Plot: data.Plot,
+      Language: data.Language,
+      Country: data.Country,
+      Awards: data.Awards,
+      imdbRating: data.imdbRating,
+      imdbVotes: data.imdbVotes,
+      imdbID: data.imdbID,
+      Type: data.Type,
+      DVD: data.DVD,
+      BoxOffice: data.BoxOffice,
+      Production: data.Production,
+      Website: data.Website,
+    };
+  }
+
+  async function fetchOmdbForMovie(movie){
+    if(!omdbConfigured()) return null;
+    const key = omdbKey(movie);
+    if(state.omdbCache[key]) return state.omdbCache[key];
+    if(state.omdbLoading.has(key)) return null;
+    state.omdbLoading.add(key);
+    try{
+      const params = new URLSearchParams({ plot:'short' });
+      if(movie.imdb_id) params.set('i', movie.imdb_id);
+      else{
+        params.set('t', movie.title);
+        if(movie.year) params.set('y', movie.year);
+      }
+      const response = await fetch(`${OMDB_ENDPOINT}?${params.toString()}`);
+      if(!response.ok) throw new Error('OMDb request failed');
+      const data = await response.json();
+      const compact = compactOmdb(data);
+      if(compact) state.omdbCache[key] = compact;
+      return compact;
+    }catch(error){
+      console.warn('Could not load OMDb data.', error);
+      return null;
+    }finally{
+      state.omdbLoading.delete(key);
+    }
+  }
+
+  function hydrateVisibleOmdb(list){
+    if(!omdbConfigured()) return;
+    list.filter(movie => !movie.omdb && !state.omdbCache[omdbKey(movie)]).slice(0, 8).forEach(movie => {
+      fetchOmdbForMovie(movie).then(data => {
+        if(data){
+          movie.omdb = data;
+          render();
+        }
+      });
+    });
+  }
+
+  function omdbSourceUrl(movie, omdb){
+    const id = movie.imdb_id || omdb?.imdbID;
+    if(id) return `https://www.imdb.com/title/${encodeURIComponent(id)}/`;
+    return `https://www.omdbapi.com/?t=${encodeURIComponent(movie.title)}${movie.year ? `&y=${encodeURIComponent(movie.year)}` : ''}`;
+  }
+
+  function omdbDetails(movie){
+    const omdb = movie.omdb || state.omdbCache[omdbKey(movie)];
+    if(!omdb){
+      return omdbConfigured()
+        ? '<div class="omdb-panel"><div class="meta">Loading OMDb details…</div></div>'
+        : '<div class="omdb-panel"><div class="meta">Configure the Cloudflare OMDb endpoint to enrich this card.</div></div>';
+    }
+    const sourceUrl = omdbSourceUrl(movie, omdb);
+    const rows = [
+      detailItem('OMDb rating', omdb.imdbRating && omdb.imdbRating !== 'N/A' ? `IMDb ${omdb.imdbRating}/10${omdb.imdbVotes && omdb.imdbVotes !== 'N/A' ? ` (${omdb.imdbVotes} votes)` : ''}` : ''),
+      detailItem('Rated', omdb.Rated && omdb.Rated !== 'N/A' ? omdb.Rated : ''),
+      detailItem('Released', omdb.Released && omdb.Released !== 'N/A' ? omdb.Released : ''),
+      detailItem('Plot', omdb.Plot && omdb.Plot !== 'N/A' ? omdb.Plot : ''),
+      detailItem('Awards', omdb.Awards && omdb.Awards !== 'N/A' ? omdb.Awards : ''),
+    ].filter(Boolean).join('');
+    return `<div class="omdb-panel">${rows}<div class="omdb-actions"><a class="btn" href="${escapeHtml(sourceUrl)}" target="_blank" rel="noopener" data-no-flip>Full movie data</a></div></div>`;
+  }
+
   function posterMarkup(movie){
     if(movie.poster){
       return `<img class="poster" src="${escapeHtml(movie.poster)}" alt="Image for ${escapeHtml(movie.title)}" loading="lazy" />`;
@@ -459,8 +589,16 @@
       movie.runtime_min ? detailItem('Runtime', `${movie.runtime_min} min`) : '',
       movie.genres.length ? detailItem('Genres', movie.genres.join(', ')) : '',
       movie.cast.length ? detailItem('Cast', `${movie.cast.slice(0,8).join(', ')}${movie.cast.length > 8 ? '…' : ''}`) : '',
+      movie.imdb_id ? detailItem('IMDb ID', movie.imdb_id) : '',
       detailItem('Notes', movie.notes || ''),
     ].filter(Boolean).join('');
+    const omdbPanel = omdbDetails(movie);
+    const adminActions = movie.source === 'supabase' && isAdmin(currentUser) ? `
+      <div class="admin-card-actions" data-no-flip>
+        <button class="btn" type="button" data-admin-action="edit" data-movie-id="${escapeHtml(movie.id)}">Edit movie</button>
+        ${movie.poster ? `<button class="btn" type="button" data-admin-action="remove-poster" data-movie-id="${escapeHtml(movie.id)}">Remove poster</button>` : ''}
+        <button class="btn" type="button" data-admin-action="delete" data-movie-id="${escapeHtml(movie.id)}">Delete movie</button>
+      </div>` : '';
 
     return `
       <article class="flip" data-year="${movie.year || ''}">
@@ -486,8 +624,10 @@
                 </div>
               </div>
               <div class="detail-list">${details || '<div class="meta">No extra details have been added for this movie yet.</div>'}</div>
+              ${omdbPanel}
               ${tags ? `<div class="tags">${tags}</div>` : ''}
               ${blogButton}
+              ${adminActions}
             </div>
           </div>
         </div>
@@ -517,6 +657,7 @@
     $('#movieList').classList.toggle('is-visible', state.listView);
     $('#moreWrap').style.display = !state.listView && list.length > state.visible ? 'block' : 'none';
     $('#btnListView').textContent = state.listView ? 'Show cards' : 'Show as list';
+    hydrateVisibleOmdb(shown);
   }
 
   function exportCSV(){
@@ -575,21 +716,21 @@
     const file = posterInput.files?.[0];
     const ext = file?.name?.split('.').pop()?.toLowerCase() || 'jpg';
     const posterName = `${slug}.${ext}`;
-    const poster = state.posterUrl || '';
+    const poster = state.posterUrl || $('#helperPosterUrl').value.trim();
     const blogEnabled = $('#helperBlogEnabled').checked;
     const movie = {
       title,
       year,
       director: normalizeList($('#helperDirector').value),
-      imdb_id: null,
+      imdb_id: $('#helperImdbId').value.trim() || null,
       poster,
-      genres: [],
-      cast: [],
-      runtime_min: null,
+      genres: normalizeList($('#helperGenres').value),
+      cast: normalizeList($('#helperCast').value),
+      runtime_min: Number($('#helperRuntime').value) || null,
       watched_date: $('#helperWatched').value || null,
-      location: '',
+      location: $('#helperLocation').value.trim(),
       rating: $('#helperRating').value ? Number($('#helperRating').value) : null,
-      tags: [],
+      tags: normalizeList($('#helperTags').value),
       notes: $('#helperNotes').value.trim(),
     };
     if(blogEnabled){
@@ -606,6 +747,8 @@
   function updateHelper(){
     const { movie, posterName } = helperMovie();
     $('#helperPosterName').textContent = state.posterUrl ? 'Image uploaded to Supabase Storage.' : `Optional Supabase Storage path: ${POSTER_BUCKET}/${posterName}`;
+    $('#saveMovie').textContent = state.editingId ? 'Update movie in Supabase' : 'Add movie to Supabase';
+    $('#cancelEditMovie').hidden = !state.editingId;
     $('#jsonSnippet').value = JSON.stringify(movie, null, 2);
   }
 
@@ -631,8 +774,9 @@
     if(admin){
       setStatus($('#authStatus'), `Logged in as ${escapeHtml(currentUser.email)}. You can add movies to Supabase.`, 'success');
     }else if(supabaseConfigured()){
-      setStatus($('#authStatus'), 'Log in with as admin email to add movies.');
+      setStatus($('#authStatus'), 'Log in as admin to add movies.');
     }
+    if(RAW.length) render();
   }
 
   function initSupabase(){
@@ -681,6 +825,130 @@
     });
   }
 
+
+
+  function findSupabaseMovie(id){
+    return RAW.find(movie => movie.source === 'supabase' && movie.id === id);
+  }
+
+  function fillHelper(movie){
+    state.editingId = movie.id || null;
+    state.posterUrl = movie.poster || '';
+    $('#helperTitle').value = movie.title || '';
+    $('#helperYear').value = movie.year || '';
+    $('#helperDirector').value = normalizeList(movie.director).join(', ');
+    $('#helperImdbId').value = movie.imdb_id || movie.omdb?.imdbID || '';
+    $('#helperWatched').value = movie.watched_date || '';
+    $('#helperPoster').value = '';
+    $('#helperPosterUrl').value = movie.poster || '';
+    $('#helperRating').value = movie.rating ?? '';
+    $('#helperRuntime').value = movie.runtime_min || '';
+    $('#helperGenres').value = normalizeList(movie.genres).join(', ');
+    $('#helperCast').value = normalizeList(movie.cast).join(', ');
+    $('#helperLocation').value = movie.location || '';
+    $('#helperTags').value = normalizeList(movie.tags).join(', ');
+    $('#helperNotes').value = movie.notes || '';
+    $('#helperBlogEnabled').checked = Boolean(movie.blog?.enabled);
+    $('#helperBlogBody').value = movie.blog?.body || '';
+    updateHelper();
+    $('#adminPanel').classList.add('is-visible');
+    $('#adminPanel').scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+
+  function resetHelper(){
+    $('#movieHelper').reset();
+    state.posterUrl = '';
+    state.editingId = null;
+    updateHelper();
+  }
+
+  async function fetchOmdbIntoHelper(){
+    const { movie } = helperMovie();
+    if(!movie.title || movie.title === 'Untitled movie'){
+      setStatus($('#authStatus'), 'Add a title before fetching OMDb details.', 'error');
+      return;
+    }
+    if(!omdbConfigured()){
+      setStatus($('#authStatus'), 'Configure OMDB_ENDPOINT with your Cloudflare Worker URL before fetching OMDb details.', 'error');
+      return;
+    }
+    setStatus($('#authStatus'), 'Fetching OMDb details…');
+    const data = await fetchOmdbForMovie(movie);
+    if(!data){
+      setStatus($('#authStatus'), 'No OMDb match was found for that title/year. Try adding the IMDb ID.', 'error');
+      return;
+    }
+    $('#helperTitle').value = data.Title || movie.title;
+    $('#helperYear').value = parseInt(data.Year, 10) || movie.year || '';
+    $('#helperDirector').value = data.Director && data.Director !== 'N/A' ? data.Director : $('#helperDirector').value;
+    $('#helperImdbId').value = data.imdbID || $('#helperImdbId').value;
+    $('#helperRuntime').value = parseInt(data.Runtime, 10) || $('#helperRuntime').value;
+    $('#helperGenres').value = data.Genre && data.Genre !== 'N/A' ? data.Genre : $('#helperGenres').value;
+    $('#helperCast').value = data.Actors && data.Actors !== 'N/A' ? data.Actors : $('#helperCast').value;
+    updateHelper();
+    setStatus($('#authStatus'), 'OMDb details added. The poster field is still manual, so upload or paste your own poster URL.', 'success');
+  }
+
+  function storagePathFromPublicUrl(url){
+    if(!url) return '';
+    const marker = `/storage/v1/object/public/${POSTER_BUCKET}/`;
+    const index = url.indexOf(marker);
+    if(index === -1) return '';
+    return decodeURIComponent(url.slice(index + marker.length));
+  }
+
+  async function removePosterForMovie(movie){
+    if(!supabaseConfigured() || !supabaseClient || !isAdmin(currentUser)){
+      setStatus($('#authStatus'), 'Please log in with the approved admin email before changing posters.', 'error');
+      return;
+    }
+    const path = storagePathFromPublicUrl(movie.poster);
+    if(path) await supabaseClient.storage.from(POSTER_BUCKET).remove([path]);
+    const { error } = await supabaseClient.from(MOVIES_TABLE).update({ poster:null }).eq('id', movie.id);
+    if(error){
+      setStatus($('#authStatus'), escapeHtml(error.message), 'error');
+      return;
+    }
+    setStatus($('#authStatus'), `Poster removed for ${escapeHtml(movie.title)}.`, 'success');
+    RAW = await loadData();
+    render();
+  }
+
+  async function deleteMovie(movie){
+    if(!supabaseConfigured() || !supabaseClient || !isAdmin(currentUser)){
+      setStatus($('#authStatus'), 'Please log in with the approved admin email before deleting movies.', 'error');
+      return;
+    }
+    if(!window.confirm(`Delete “${movie.title}” from Supabase? This cannot be undone.`)) return;
+    const path = storagePathFromPublicUrl(movie.poster);
+    if(path) await supabaseClient.storage.from(POSTER_BUCKET).remove([path]);
+    const { error } = await supabaseClient.from(MOVIES_TABLE).delete().eq('id', movie.id);
+    if(error){
+      setStatus($('#authStatus'), escapeHtml(error.message), 'error');
+      return;
+    }
+    setStatus($('#authStatus'), `${escapeHtml(movie.title)} was deleted from Supabase.`, 'success');
+    if(state.editingId === movie.id) resetHelper();
+    RAW = await loadData();
+    render();
+  }
+
+  function bindAdminCardActions(){
+    $('#grid').addEventListener('click', async event => {
+      const button = event.target.closest('[data-admin-action]');
+      if(!button) return;
+      const movie = findSupabaseMovie(button.dataset.movieId);
+      if(!movie) return;
+      if(!isAdmin(currentUser)){
+        setStatus($('#authStatus'), 'Log in as admin to change Supabase movies.', 'error');
+        return;
+      }
+      if(button.dataset.adminAction === 'edit') fillHelper(movie);
+      if(button.dataset.adminAction === 'remove-poster') await removePosterForMovie(movie);
+      if(button.dataset.adminAction === 'delete') await deleteMovie(movie);
+    });
+  }
+    
   async function uploadPoster(){
     const { file, posterName } = helperMovie();
     if(!supabaseConfigured() || !supabaseClient){
@@ -725,16 +993,17 @@
       return;
     }
 
-    const { error } = await supabaseClient.from(MOVIES_TABLE).insert([movie]);
+    const query = state.editingId
+      ? supabaseClient.from(MOVIES_TABLE).update(movie).eq('id', state.editingId)
+      : supabaseClient.from(MOVIES_TABLE).insert([movie]);
+    const { error } = await query;
     if(error){
       setStatus($('#authStatus'), escapeHtml(error.message), 'error');
       return;
     }
 
-    setStatus($('#authStatus'), `${escapeHtml(movie.title)} was added to Supabase.`, 'success');
-    $('#movieHelper').reset();
-    state.posterUrl = '';
-    updateHelper();
+    setStatus($('#authStatus'), `${escapeHtml(movie.title)} was ${state.editingId ? 'updated in' : 'added to'} Supabase.`, 'success');
+    resetHelper();
     RAW = await loadData();
     const { min, max } = computeYearBounds(RAW);
     populateYearSelects(min, max);
@@ -744,8 +1013,10 @@
   function bindHelper(){
     $('#movieHelper').addEventListener('input', updateHelper);
     $('#helperPoster').addEventListener('change', () => { state.posterUrl = ''; updateHelper(); });
+    $('#fetchOmdb').addEventListener('click', fetchOmdbIntoHelper);
     $('#uploadPoster').addEventListener('click', uploadPoster);
     $('#saveMovie').addEventListener('click', saveMovie);
+    $('#cancelEditMovie').addEventListener('click', resetHelper);
     $('#copySnippet').addEventListener('click', async () => {
       $('#jsonSnippet').select();
       try{ await navigator.clipboard.writeText($('#jsonSnippet').value); }
@@ -776,6 +1047,7 @@
     try{
       bindUI();
       bindCardFlips();
+      bindAdminCardActions();
       bindHelper();
       bindTheme();
       bindAuth();
