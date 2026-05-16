@@ -114,6 +114,7 @@
         slug,
         director: normalizeList(movie.director),
         poster: movie.poster || '',
+        omdb: movie.omdb || null,
         blog: movie.blog && movie.blog.enabled ? {
           enabled: true,
           slug: movie.blog.slug || slug,
@@ -127,6 +128,12 @@
       return new URLSearchParams(window.location.search).get('movie') || window.location.hash.replace(/^#/, '');
     }
 
+    function movieDataUrl(movie){
+      const imdbId = movie.imdb_id || movie.omdb?.imdbID;
+      if(imdbId) return `https://www.imdb.com/title/${encodeURIComponent(imdbId)}/`;
+      return `https://www.omdbapi.com/?t=${encodeURIComponent(movie.title)}${movie.year ? `&y=${encodeURIComponent(movie.year)}` : ''}`;
+    }
+    
     function posterMarkup(movie){
       if(movie.poster){
         return `<img class="hero" src="${escapeHtml(movie.poster)}" alt="Image for ${escapeHtml(movie.title)}" />`;
@@ -153,6 +160,7 @@
         <p class="meta">${movie.year || 'Year unknown'}${directors ? ` · ${escapeHtml(directors)}` : ''}</p>
         ${posterMarkup(movie)}
         <div class="body">${body ? escapeHtml(body) : '<span class="empty">Add text in the optional blog.body field for this movie.</span>'}</div>
+        <p class="meta"><a href="${escapeHtml(movieDataUrl(movie))}" target="_blank" rel="noopener">Full movie data</a></p>
       `;
     }
 
